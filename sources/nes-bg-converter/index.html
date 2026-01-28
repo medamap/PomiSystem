@@ -264,6 +264,9 @@
             .output-section {
                 grid-template-columns: 1fr;
             }
+            .output-canvas-wrapper {
+                overflow: visible;
+            }
         }
         
         .output-panel {
@@ -445,14 +448,20 @@
             justify-content: center;
             z-index: 1000;
             display: none;
+            pointer-events: none;
         }
         
         .processing-overlay.active {
-            display: flex;
+            display: block;
         }
         
         .processing-content {
+            position: absolute;
+            left: 50%;
+            transform: translate(-50%, -50%);
             text-align: center;
+            width: 90%;
+            max-width: 450px;
         }
         
         .spinner {
@@ -568,6 +577,17 @@
                             <option value="bayer4">Ordered Dither (Bayer 4×4)</option>
                         </select>
                     </div>
+
+                    <div class="control-group">
+                        <label>
+                            描画モード
+                        </label>
+                        <select id="renderMode">
+                            <option value="normal" selected>通常</option>
+                            <option value="edge">輪郭優先</option>
+                            <option value="edge-no-outline">輪郭なし（代表色優先）</option>
+                        </select>
+                    </div>
                     
                     <div class="section-divider"></div>
                     
@@ -597,6 +617,16 @@
                             <span>8</span>
                             <span>魔改造:16</span>
                         </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>
+                            パレット統計単位
+                        </label>
+                        <select id="paletteBlockSize">
+                            <option value="16" selected>16×16（NES標準）</option>
+                            <option value="8">8×8（細かめ）</option>
+                        </select>
                     </div>
                     
                     <div class="section-divider"></div>
@@ -842,10 +872,12 @@
             cropLabelLeft: document.getElementById('cropLabelLeft'),
             cropLabelRight: document.getElementById('cropLabelRight'),
             ditherMode: document.getElementById('ditherMode'),
+            renderMode: document.getElementById('renderMode'),
             paletteCount: document.getElementById('paletteCount'),
             paletteCountValue: document.getElementById('paletteCountValue'),
             colorsPerPalette: document.getElementById('colorsPerPalette'),
             colorsPerPaletteValue: document.getElementById('colorsPerPaletteValue'),
+            paletteBlockSize: document.getElementById('paletteBlockSize'),
             paletteContainer: document.getElementById('paletteContainer'),
             chrLimit: document.getElementById('chrLimit'),
             chrLimitValue: document.getElementById('chrLimitValue'),
@@ -890,8 +922,10 @@
             outputMode: 'nes',
             cropPosition: 50,
             ditherMode: 'checker',
+            renderMode: 'normal',
             paletteCount: 4,
             colorsPerPalette: 4,
+            paletteBlockSize: 16,
             chrLimit: 256,
             similarity: 15,
             brightness: 0,
@@ -998,6 +1032,8 @@
             
             elements.outputMode.addEventListener('change', triggerConvert);
             elements.ditherMode.addEventListener('change', triggerConvert);
+            elements.renderMode.addEventListener('change', triggerConvert);
+            elements.paletteBlockSize.addEventListener('change', triggerConvert);
             
             elements.paletteCount.addEventListener('input', () => {
                 elements.paletteCountValue.textContent = elements.paletteCount.value;
@@ -1109,6 +1145,137 @@
         function rgbToHex(r, g, b) {
             return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
         }
+
+        function quantizeToNesPalette(imageData) {
+            const width = imageData.width;
+            const height = imageData.height;
+            const data = imageData.data;
+            const out = new ImageData(width, height);
+            const outData = out.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const nearest = findNearestNesColor(data[i], data[i + 1], data[i + 2]);
+                outData[i] = nearest.r;
+                outData[i + 1] = nearest.g;
+                outData[i + 2] = nearest.b;
+                outData[i + 3] = 255;
+            }
+            return out;
+        }
+
+        function getDitherThreshold(x, y, ditherMode) {
+            if (ditherMode === 'checker') {
+                return ((x + y) % 2) * 64 - 32;
+            }
+            if (ditherMode === 'bayer2') {
+                return (BAYER2[y % 2][x % 2] / 4 - 0.5) * 64;
+            }
+            if (ditherMode === 'bayer4') {
+                return (BAYER4[y % 4][x % 4] / 16 - 0.5) * 64;
+            }
+            return 0;
+        }
+
+        function detectEdges(imageData, width, height) {
+            const data = imageData.data;
+            const gray = new Uint8Array(width * height);
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const i = (y * width + x) * 4;
+                    gray[y * width + x] = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+                }
+            }
+            
+            const mask = new Uint8Array(width * height);
+            const threshold = 60;
+            
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    const idx = y * width + x;
+                    const g00 = gray[idx - width - 1];
+                    const g01 = gray[idx - width];
+                    const g02 = gray[idx - width + 1];
+                    const g10 = gray[idx - 1];
+                    const g12 = gray[idx + 1];
+                    const g20 = gray[idx + width - 1];
+                    const g21 = gray[idx + width];
+                    const g22 = gray[idx + width + 1];
+                    
+                    const gx = (-1 * g00) + (1 * g02) + (-2 * g10) + (2 * g12) + (-1 * g20) + (1 * g22);
+                    const gy = (-1 * g00) + (-2 * g01) + (-1 * g02) + (1 * g20) + (2 * g21) + (1 * g22);
+                    const mag = Math.abs(gx) + Math.abs(gy);
+                    
+                    if (mag >= threshold) mask[idx] = 1;
+                }
+            }
+            
+            return mask;
+        }
+
+        function smoothAttrMap(attrMap, blocksX, blocksY) {
+            const out = attrMap.map(row => row.slice());
+            const dirs = [
+                [0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]
+            ];
+            
+            for (let y = 0; y < blocksY; y++) {
+                for (let x = 0; x < blocksX; x++) {
+                    const counts = new Map();
+                    for (const [dx, dy] of dirs) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        if (nx < 0 || ny < 0 || nx >= blocksX || ny >= blocksY) continue;
+                        const idx = attrMap[ny][nx];
+                        counts.set(idx, (counts.get(idx) || 0) + 1);
+                    }
+                    const current = attrMap[y][x];
+                    let best = current;
+                    let bestCount = counts.get(current) || 0;
+                    for (const [idx, count] of counts.entries()) {
+                        if (count > bestCount) {
+                            best = idx;
+                            bestCount = count;
+                        }
+                    }
+                    out[y][x] = best;
+                }
+            }
+            
+            return out;
+        }
+
+        function computeTileFlatMask(imageData, width, height) {
+            const tilesX = Math.ceil(width / 8);
+            const tilesY = Math.ceil(height / 8);
+            const data = imageData.data;
+            const flat = new Uint8Array(tilesX * tilesY);
+            
+            for (let ty = 0; ty < tilesY; ty++) {
+                for (let tx = 0; tx < tilesX; tx++) {
+                    const colors = new Set();
+                    const startX = tx * 8;
+                    const startY = ty * 8;
+                    for (let y = 0; y < 8; y++) {
+                        for (let x = 0; x < 8; x++) {
+                            const px = startX + x;
+                            const py = startY + y;
+                            if (px >= width || py >= height) continue;
+                            const i = (py * width + px) * 4;
+                            const key = `${data[i]},${data[i + 1]},${data[i + 2]}`;
+                            colors.add(key);
+                            if (colors.size > 2) break;
+                        }
+                        if (colors.size > 2) break;
+                    }
+                    if (colors.size <= 2) {
+                        flat[ty * tilesX + tx] = 1;
+                    }
+                }
+            }
+            
+            return flat;
+        }
         
         // Main conversion
         async function convert() {
@@ -1117,7 +1284,7 @@
                 return;
             }
             
-            elements.processingOverlay.classList.add('active');
+            showOverlay();
             await new Promise(resolve => setTimeout(resolve, 50));
             
             try {
@@ -1148,20 +1315,63 @@
                 // Apply color adjustments
                 imageData = applyColorAdjustments(imageData, settings);
                 
+                // Double buffer: stats based on NES-quantized image
+                const statsImageData = quantizeToNesPalette(imageData);
+                
                 // Step 1: Find universal background color (most common)
-                const bgColor = findUniversalBackgroundColor(imageData);
+                const bgColor = findUniversalBackgroundColor(statsImageData);
                 
                 // Step 2: Analyze attribute blocks and generate palettes
-                const attrBlocksX = Math.ceil(dims.width / 16);
-                const attrBlocksY = Math.ceil(dims.height / 16);
-                const palettes = generateNesPalettes(imageData, dims.width, dims.height, bgColor, settings.paletteCount, settings.colorsPerPalette);
+                const attrBlocksX = Math.ceil(dims.width / settings.paletteBlockSize);
+                const attrBlocksY = Math.ceil(dims.height / settings.paletteBlockSize);
+                const palettes = generateNesPalettes(
+                    statsImageData,
+                    dims.width,
+                    dims.height,
+                    bgColor,
+                    settings.paletteCount,
+                    settings.colorsPerPalette,
+                    settings.paletteBlockSize
+                );
                 generatedPalettes = palettes;
                 
                 // Step 3: Assign palettes to attribute blocks
-                const attrMap = assignAttributeBlocks(imageData, dims.width, dims.height, palettes);
+                const rawAttrMap = assignAttributeBlocks(
+                    statsImageData,
+                    dims.width,
+                    dims.height,
+                    palettes,
+                    settings.paletteBlockSize
+                );
+                const attrMap = smoothAttrMap(rawAttrMap, attrBlocksX, attrBlocksY);
+                const tileFlat = computeTileFlatMask(statsImageData, dims.width, dims.height);
                 
                 // Step 4: Apply dithering and quantization per attribute block
-                imageData = applyNesDithering(imageData, dims.width, dims.height, palettes, attrMap, settings.ditherMode);
+                if (settings.renderMode === 'normal') {
+                    imageData = applyNesDithering(
+                        imageData,
+                        dims.width,
+                        dims.height,
+                        palettes,
+                        attrMap,
+                        settings.ditherMode,
+                        settings.paletteBlockSize,
+                        tileFlat
+                    );
+                } else {
+                    const edgeMask = detectEdges(imageData, dims.width, dims.height);
+                    imageData = applyEdgePriority(
+                        imageData,
+                        statsImageData,
+                        dims.width,
+                        dims.height,
+                        palettes,
+                        attrMap,
+                        settings,
+                        edgeMask,
+                        tileFlat
+                    );
+                }
                 
                 // Step 5: CHR tile processing
                 const chrResult = processChrTiles(imageData, dims.width, dims.height, settings);
@@ -1189,7 +1399,7 @@
                 showToast('変換エラーが発生しました');
             }
             
-            elements.processingOverlay.classList.remove('active');
+            hideOverlay();
         }
         
         function calculateDimensions(srcWidth, srcHeight, mode, cropPosition = 50) {
@@ -1273,6 +1483,48 @@
             }
             return imageData;
         }
+
+        function getVisibleCenterY() {
+            try {
+                if (window.parent !== window && window.frameElement) {
+                    const rect = window.frameElement.getBoundingClientRect();
+                    const parentVH = window.parent.innerHeight;
+                    const visibleTop = Math.max(0, -rect.top);
+                    const visibleBottom = Math.min(rect.height, parentVH - rect.top);
+                    return visibleTop + (visibleBottom - visibleTop) / 2;
+                }
+            } catch (e) {}
+            return window.scrollY + window.innerHeight / 2;
+        }
+
+        function setParentScroll(lock) {
+            try {
+                if (window.parent !== window && window.frameElement) {
+                    window.parent.document.body.style.overflow = lock ? 'hidden' : '';
+                }
+            } catch (e) {}
+            document.body.style.overflow = lock ? 'hidden' : '';
+            document.documentElement.style.overflow = lock ? 'hidden' : '';
+            document.body.style.touchAction = lock ? 'none' : '';
+        }
+
+        function preventTouchScroll(e) {
+            e.preventDefault();
+        }
+
+        function showOverlay() {
+            setParentScroll(true);
+            document.addEventListener('touchmove', preventTouchScroll, { passive: false });
+            const content = elements.processingOverlay.querySelector('.processing-content');
+            content.style.top = getVisibleCenterY() + 'px';
+            elements.processingOverlay.classList.add('active');
+        }
+
+        function hideOverlay() {
+            setParentScroll(false);
+            document.removeEventListener('touchmove', preventTouchScroll);
+            elements.processingOverlay.classList.remove('active');
+        }
         
         function findUniversalBackgroundColor(imageData) {
             const colorCount = new Map();
@@ -1296,9 +1548,9 @@
             return bgColor;
         }
         
-        function generateNesPalettes(imageData, width, height, bgColor, paletteCount, colorsPerPalette) {
-            const attrBlocksX = Math.ceil(width / 16);
-            const attrBlocksY = Math.ceil(height / 16);
+        function generateNesPalettes(imageData, width, height, bgColor, paletteCount, colorsPerPalette, blockSize) {
+            const attrBlocksX = Math.ceil(width / blockSize);
+            const attrBlocksY = Math.ceil(height / blockSize);
             const data = imageData.data;
             
             // Collect colors per attribute block
@@ -1307,8 +1559,8 @@
             for (let by = 0; by < attrBlocksY; by++) {
                 for (let bx = 0; bx < attrBlocksX; bx++) {
                     const colors = new Map();
-                    for (let y = by * 16; y < Math.min((by + 1) * 16, height); y++) {
-                        for (let x = bx * 16; x < Math.min((bx + 1) * 16, width); x++) {
+                    for (let y = by * blockSize; y < Math.min((by + 1) * blockSize, height); y++) {
+                        for (let x = bx * blockSize; x < Math.min((bx + 1) * blockSize, width); x++) {
                             const i = (y * width + x) * 4;
                             const nearest = findNearestNesColor(data[i], data[i + 1], data[i + 2]);
                             const key = `${nearest.r},${nearest.g},${nearest.b}`;
@@ -1412,10 +1664,10 @@
             return palettes;
         }
         
-        function assignAttributeBlocks(imageData, width, height, palettes) {
+        function assignAttributeBlocks(imageData, width, height, palettes, blockSize) {
             const paletteCount = palettes.length;
-            const attrBlocksX = Math.ceil(width / 16);
-            const attrBlocksY = Math.ceil(height / 16);
+            const attrBlocksX = Math.ceil(width / blockSize);
+            const attrBlocksY = Math.ceil(height / blockSize);
             const data = imageData.data;
             const attrMap = [];
             
@@ -1427,8 +1679,8 @@
                     
                     for (let p = 0; p < paletteCount; p++) {
                         let score = 0;
-                        for (let y = by * 16; y < Math.min((by + 1) * 16, height); y++) {
-                            for (let x = bx * 16; x < Math.min((bx + 1) * 16, width); x++) {
+                        for (let y = by * blockSize; y < Math.min((by + 1) * blockSize, height); y++) {
+                            for (let x = bx * blockSize; x < Math.min((bx + 1) * blockSize, width); x++) {
                                 const i = (y * width + x) * 4;
                                 const r = data[i], g = data[i + 1], b = data[i + 2];
                                 let minDist = Infinity;
@@ -1451,27 +1703,22 @@
             return attrMap;
         }
         
-        function applyNesDithering(imageData, width, height, palettes, attrMap, ditherMode) {
+        function applyNesDithering(imageData, width, height, palettes, attrMap, ditherMode, blockSize, tileFlat) {
             const data = imageData.data;
+            const tilesX = Math.ceil(width / 8);
             
             for (let y = 0; y < height; y++) {
                 for (let x = 0; x < width; x++) {
                     const i = (y * width + x) * 4;
-                    const bx = Math.floor(x / 16);
-                    const by = Math.floor(y / 16);
+                    const tileIndex = Math.floor(y / 8) * tilesX + Math.floor(x / 8);
+                    const bx = Math.floor(x / blockSize);
+                    const by = Math.floor(y / blockSize);
                     const palette = palettes[attrMap[by][bx]];
                     
                     let r = data[i], g = data[i + 1], b = data[i + 2];
                     
                     // Apply dither threshold
-                    let threshold = 0;
-                    if (ditherMode === 'checker') {
-                        threshold = ((x + y) % 2) * 64 - 32;
-                    } else if (ditherMode === 'bayer2') {
-                        threshold = (BAYER2[y % 2][x % 2] / 4 - 0.5) * 64;
-                    } else if (ditherMode === 'bayer4') {
-                        threshold = (BAYER4[y % 4][x % 4] / 16 - 0.5) * 64;
-                    }
+                    const threshold = (tileFlat && tileFlat[tileIndex]) ? 0 : getDitherThreshold(x, y, ditherMode);
                     
                     r += threshold;
                     g += threshold;
@@ -1482,6 +1729,110 @@
                     let minDist = Infinity;
                     for (const pc of palette) {
                         const dist = colorDistance({ r, g, b }, pc);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            nearest = pc;
+                        }
+                    }
+                    
+                    data[i] = nearest.r;
+                    data[i + 1] = nearest.g;
+                    data[i + 2] = nearest.b;
+                }
+            }
+            
+            return imageData;
+        }
+
+        function pickTopIndices(counts, maxCount) {
+            const indexed = counts.map((count, index) => ({ index, count }))
+                .filter(item => item.count > 0)
+                .sort((a, b) => b.count - a.count);
+            return indexed.slice(0, maxCount).map(item => item.index);
+        }
+
+        function findNearestInPaletteIndex(palette, r, g, b) {
+            let minDist = Infinity;
+            let best = 0;
+            for (let i = 0; i < palette.length; i++) {
+                const pc = palette[i];
+                const dist = colorDistance({ r, g, b }, pc);
+                if (dist < minDist) {
+                    minDist = dist;
+                    best = i;
+                }
+            }
+            return best;
+        }
+
+        function applyEdgePriority(imageData, statsImageData, width, height, palettes, attrMap, settings, edgeMask, tileFlat) {
+            const data = imageData.data;
+            const statsData = statsImageData.data;
+            const tilesX = Math.ceil(width / 8);
+            const tilesY = Math.ceil(height / 8);
+            const blockSize = settings.paletteBlockSize;
+            const ditherMode = settings.ditherMode;
+            const outlineMode = settings.renderMode === 'edge';
+            
+            const tileEdgeIndex = new Array(tilesX * tilesY);
+            
+            for (let ty = 0; ty < tilesY; ty++) {
+                for (let tx = 0; tx < tilesX; tx++) {
+                    const tileIndex = ty * tilesX + tx;
+                    const bx = Math.floor((tx * 8) / blockSize);
+                    const by = Math.floor((ty * 8) / blockSize);
+                    const palette = palettes[attrMap[by][bx]];
+                    const countsAll = new Array(palette.length).fill(0);
+                    const countsEdge = new Array(palette.length).fill(0);
+                    
+                    const startX = tx * 8;
+                    const startY = ty * 8;
+                    for (let y = 0; y < 8; y++) {
+                        for (let x = 0; x < 8; x++) {
+                            const px = startX + x;
+                            const py = startY + y;
+                            if (px >= width || py >= height) continue;
+                            const i = (py * width + px) * 4;
+                            const pr = statsData[i];
+                            const pg = statsData[i + 1];
+                            const pb = statsData[i + 2];
+                            const pIndex = findNearestInPaletteIndex(palette, pr, pg, pb);
+                            countsAll[pIndex]++;
+                            if (edgeMask[py * width + px]) countsEdge[pIndex]++;
+                        }
+                    }
+                    
+                    const edgeIndices = pickTopIndices(countsEdge, 1);
+                    const allIndices = pickTopIndices(countsAll, 1);
+                    const edgeIndex = edgeIndices.length > 0 ? edgeIndices[0] : (allIndices[0] ?? 0);
+                    tileEdgeIndex[tileIndex] = edgeIndex;
+                }
+            }
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const i = (y * width + x) * 4;
+                    const tx = Math.floor(x / 8);
+                    const ty = Math.floor(y / 8);
+                    const tileIndex = ty * tilesX + tx;
+                    const bx = Math.floor(x / blockSize);
+                    const by = Math.floor(y / blockSize);
+                    const palette = palettes[attrMap[by][bx]];
+                    const edgeIndex = tileEdgeIndex[tileIndex] ?? 0;
+                    
+                    const threshold = (tileFlat && tileFlat[tileIndex]) ? 0 : getDitherThreshold(x, y, ditherMode);
+                    const r = data[i] + threshold;
+                    const g = data[i + 1] + threshold;
+                    const b = data[i + 2] + threshold;
+                    
+                    let nearest = palette[0];
+                    let minDist = Infinity;
+                    for (let p = 0; p < palette.length; p++) {
+                        const pc = palette[p];
+                        let dist = colorDistance({ r, g, b }, pc);
+                        if (outlineMode && edgeMask[y * width + x] && p === edgeIndex) {
+                            dist *= 0.6;
+                        }
                         if (dist < minDist) {
                             minDist = dist;
                             nearest = pc;
@@ -1707,8 +2058,10 @@
                 outputMode: elements.outputMode.value,
                 cropPosition: parseInt(elements.cropPosition.value),
                 ditherMode: elements.ditherMode.value,
+                renderMode: elements.renderMode.value,
                 paletteCount: parseInt(elements.paletteCount.value),
                 colorsPerPalette: parseInt(elements.colorsPerPalette.value),
+                paletteBlockSize: parseInt(elements.paletteBlockSize.value),
                 chrLimit: parseInt(elements.chrLimit.value),
                 similarity: parseInt(elements.similarity.value),
                 brightness: parseInt(elements.brightness.value),
@@ -1740,8 +2093,10 @@
             elements.outputMode.value = settings.outputMode || defaultSettings.outputMode;
             elements.cropPosition.value = settings.cropPosition || defaultSettings.cropPosition;
             elements.ditherMode.value = settings.ditherMode || defaultSettings.ditherMode;
+            elements.renderMode.value = settings.renderMode || defaultSettings.renderMode;
             elements.paletteCount.value = settings.paletteCount || defaultSettings.paletteCount;
             elements.colorsPerPalette.value = settings.colorsPerPalette || defaultSettings.colorsPerPalette;
+            elements.paletteBlockSize.value = settings.paletteBlockSize || defaultSettings.paletteBlockSize;
             elements.chrLimit.value = settings.chrLimit || defaultSettings.chrLimit;
             elements.similarity.value = settings.similarity || defaultSettings.similarity;
             elements.brightness.value = settings.brightness || defaultSettings.brightness;
@@ -1859,6 +2214,22 @@
         }
         
         init();
+        
+        // Notify parent frame of content height for auto-sizing iframe
+        (function() {
+            if (window.parent === window) return;
+            let lastHeight = 0;
+            function notifyHeight() {
+                const height = document.documentElement.scrollHeight;
+                if (height !== lastHeight) {
+                    lastHeight = height;
+                    window.parent.postMessage({ type: 'nesbg-resize', height: height }, '*');
+                }
+            }
+            const ro = new ResizeObserver(notifyHeight);
+            ro.observe(document.body);
+            notifyHeight();
+        })();
     </script>
 </body>
 </html>
