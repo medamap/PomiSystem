@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Boy BG Converter</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a0a0a;
+            --bg-tertiary: #2a1010;
+            --accent: #ff0000;
+            --accent-hover: #ff4444;
+            --text-primary: #eee;
+            --text-secondary: #aaa;
+            --border: #441111;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Meiryo', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a0000, #330000, #1a0000);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: #ff0000;
+            text-shadow: 0 0 20px #ff0000, 0 0 40px #880000;
+        }
+        
+        header p {
+            color: #ff6666;
+            font-size: 0.9em;
+        }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 1000px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+        
+        .panel h2 {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            color: var(--accent);
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+        }
+        
+        .control-group .value {
+            float: right;
+            color: var(--accent);
+            font-weight: bold;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--bg-tertiary);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--accent-hover);
+        }
+        
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            width: 100%;
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+        
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 0.85em;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn-group .btn {
+            flex: 1;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 40px 20px;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .file-input-label:hover {
+            border-color: var(--accent);
+            background: rgba(255, 0, 0, 0.1);
+        }
+        
+        .file-input-label.dragover {
+            border-color: var(--accent);
+            background: rgba(255, 0, 0, 0.2);
+        }
+        
+        .preview-area {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .preview-area img {
+            max-width: 100%;
+            max-height: 200px;
+            image-rendering: pixelated;
+        }
+        
+        .preview-area .placeholder {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+        
+        .output-panel {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+        
+        .output-panel h3 {
+            font-size: 1em;
+            margin-bottom: 15px;
+            color: var(--accent);
+        }
+        
+        .output-canvas-wrapper {
+            background: #000;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 15px;
+            overflow: auto;
+        }
+        
+        .output-canvas-wrapper canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        .zoom-controls {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+            justify-content: center;
+        }
+        
+        .zoom-btn {
+            padding: 5px 12px;
+            font-size: 0.8em;
+            border-radius: 4px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            cursor: pointer;
+        }
+        
+        .zoom-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        .info-panel {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .info-panel h4 {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            color: var(--text-secondary);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+        }
+        
+        .info-item .label {
+            color: var(--text-secondary);
+        }
+        
+        .info-item .value {
+            color: var(--accent);
+            font-weight: bold;
+        }
+        
+        .color-mode-section {
+            margin-bottom: 15px;
+        }
+        
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .radio-option:hover {
+            background: var(--border);
+        }
+        
+        .radio-option.selected {
+            border: 1px solid var(--accent);
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+        }
+        
+        .radio-option input[type="radio"] {
+            accent-color: var(--accent);
+            width: 18px;
+            height: 18px;
+        }
+        
+        .color-presets {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            padding: 10px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+        }
+        
+        .color-preset {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .color-preset:hover {
+            transform: scale(1.1);
+        }
+        
+        .color-preset.selected {
+            border-color: white;
+            box-shadow: 0 0 10px currentColor;
+        }
+        
+        .rgb-sliders {
+            margin-top: 10px;
+            padding: 10px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+        }
+        
+        .rgb-sliders .control-group {
+            margin-bottom: 10px;
+        }
+        
+        .rgb-sliders .control-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        .color-preview-box {
+            width: 100%;
+            height: 30px;
+            border-radius: 4px;
+            margin-top: 10px;
+            border: 1px solid var(--border);
+        }
+        
+        .gradient-controls {
+            margin-top: 10px;
+            padding: 10px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+        }
+        
+        .gradient-points-selector {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .gradient-point-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+        
+        .gradient-point-btn:hover {
+            background: var(--border);
+        }
+        
+        .gradient-point-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        .gradient-presets {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .gradient-preset-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.2s;
+        }
+        
+        .gradient-preset-btn:hover {
+            transform: scale(1.1);
+            border-color: var(--accent);
+        }
+        
+        .gradient-color-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .gradient-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .gradient-row.hidden {
+            display: none;
+        }
+        
+        .gradient-row label {
+            width: 50px;
+            font-size: 0.8em;
+            color: var(--text-secondary);
+        }
+        
+        .gradient-row input[type="color"] {
+            width: 60px;
+            height: 28px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0;
+        }
+        
+        .gradient-preview {
+            width: 100%;
+            height: 30px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        
+        .palette-preview {
+            margin-top: 15px;
+        }
+        
+        .palette-preview h4 {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .palette-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 0.75em;
+        }
+        
+        .palette-label {
+            width: 70px;
+            color: var(--text-secondary);
+        }
+        
+        .palette-colors {
+            display: flex;
+            gap: 3px;
+        }
+        
+        .palette-swatch {
+            width: 28px;
+            height: 20px;
+            border-radius: 3px;
+            border: 1px solid #333;
+        }
+        
+        .section-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 20px 0;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+        }
+        
+        .processing-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .processing-overlay.active {
+            display: flex;
+        }
+        
+        .processing-content {
+            text-align: center;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: var(--accent);
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1001;
+        }
+        
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .settings-footer {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+        
+        .vb-info {
+            font-size: 0.75em;
+            color: #ff6666;
+            margin-top: 5px;
+            padding: 8px;
+            background: rgba(255, 0, 0, 0.1);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>👁️ Virtual Boy BG Converter</h1>
+            <p>あの赤い世界を再現 — 4階調×4パレット、輝度ベース自動分類</p>
+        </header>
+        
+        <div class="main-layout">
+            <!-- Left Panel: Controls -->
+            <div class="controls-column">
+                <div class="panel">
+                    <h2>📁 画像入力</h2>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="imageInput" accept="image/*">
+                        <div class="file-input-label" id="dropZone">
+                            <span>📷 クリックまたはドラッグ&ドロップ</span>
+                        </div>
+                    </div>
+                    <div class="preview-area" id="inputPreview">
+                        <span class="placeholder">画像を選択してください</span>
+                    </div>
+                    
+                    <button class="btn btn-primary" id="convertBtnTop" style="margin-top: 15px;">
+                        🔄 変換実行
+                    </button>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <h2>⚙️ 変換設定</h2>
+                    
+                    <div class="control-group">
+                        <label>出力サイズモード</label>
+                        <select id="outputMode">
+                            <option value="vb" selected>VB標準（384×224）</option>
+                            <option value="qvga">QVGA（320×240）</option>
+                            <option value="qvga2x">QVGA 2倍（640×480）</option>
+                            <option value="auto">オート（アスペクト比維持）</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            トリミング位置
+                            <span class="value" id="cropPositionValue">50%</span>
+                        </label>
+                        <input type="range" id="cropPosition" min="25" max="75" value="50">
+                        <div class="range-labels">
+                            <span id="cropLabelLeft">上/左</span>
+                            <span>中央</span>
+                            <span id="cropLabelRight">下/右</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>ディザリング方式</label>
+                        <select id="ditherMode">
+                            <option value="none">なし（最近傍色）</option>
+                            <option value="checker" selected>市松模様ディザ</option>
+                            <option value="bayer2">Ordered Dither (Bayer 2×2)</option>
+                            <option value="bayer4">Ordered Dither (Bayer 4×4)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <h2>🎨 カラーモード（魔改造）</h2>
+                    
+                    <div class="color-mode-section">
+                        <div class="radio-group">
+                            <label class="radio-option selected" data-mode="vb">
+                                <input type="radio" name="colorMode" value="vb" checked>
+                                <span>🔴 VB実機（赤単色）</span>
+                            </label>
+                            
+                            <label class="radio-option" data-mode="preset">
+                                <input type="radio" name="colorMode" value="preset">
+                                <span>🎨 単色プリセット</span>
+                            </label>
+                            
+                            <div class="color-presets" id="presetColors" style="display: none;">
+                                <div class="color-preset selected" data-color="255,0,0" style="background: #ff0000;" title="赤"></div>
+                                <div class="color-preset" data-color="0,0,255" style="background: #0000ff;" title="青"></div>
+                                <div class="color-preset" data-color="0,255,0" style="background: #00ff00;" title="緑"></div>
+                                <div class="color-preset" data-color="255,255,0" style="background: #ffff00;" title="黄"></div>
+                                <div class="color-preset" data-color="255,0,255" style="background: #ff00ff;" title="紫"></div>
+                                <div class="color-preset" data-color="0,255,255" style="background: #00ffff;" title="水"></div>
+                                <div class="color-preset" data-color="255,255,255" style="background: #ffffff;" title="白"></div>
+                                <div class="color-preset" data-color="255,128,0" style="background: #ff8000;" title="橙"></div>
+                            </div>
+                            
+                            <label class="radio-option" data-mode="custom">
+                                <input type="radio" name="colorMode" value="custom">
+                                <span>🔧 カスタムRGB</span>
+                            </label>
+                            
+                            <div class="rgb-sliders" id="customRgb" style="display: none;">
+                                <div class="control-group">
+                                    <label>R <span class="value" id="customRValue">255</span></label>
+                                    <input type="range" id="customR" min="0" max="255" value="255" style="accent-color: #ff0000;">
+                                </div>
+                                <div class="control-group">
+                                    <label>G <span class="value" id="customGValue">0</span></label>
+                                    <input type="range" id="customG" min="0" max="255" value="0" style="accent-color: #00ff00;">
+                                </div>
+                                <div class="control-group">
+                                    <label>B <span class="value" id="customBValue">0</span></label>
+                                    <input type="range" id="customB" min="0" max="255" value="0" style="accent-color: #0000ff;">
+                                </div>
+                                <div class="color-preview-box" id="customColorPreview" style="background: #ff0000;"></div>
+                            </div>
+                            
+                            <label class="radio-option" data-mode="gradient">
+                                <input type="radio" name="colorMode" value="gradient">
+                                <span>🌈 グラデーション</span>
+                            </label>
+                            
+                            <div class="gradient-controls" id="gradientControls" style="display: none;">
+                                <div class="gradient-points-selector">
+                                    <button class="gradient-point-btn active" data-points="2">2点</button>
+                                    <button class="gradient-point-btn" data-points="3">3点</button>
+                                    <button class="gradient-point-btn" data-points="5">5点</button>
+                                </div>
+                                
+                                <div class="gradient-presets">
+                                    <button class="gradient-preset-btn" data-preset="sepia" title="セピア">🟤</button>
+                                    <button class="gradient-preset-btn" data-preset="cyber" title="サイバー">💜</button>
+                                    <button class="gradient-preset-btn" data-preset="ocean" title="オーシャン">🌊</button>
+                                    <button class="gradient-preset-btn" data-preset="sunset" title="サンセット">🌅</button>
+                                    <button class="gradient-preset-btn" data-preset="forest" title="フォレスト">🌲</button>
+                                    <button class="gradient-preset-btn" data-preset="gaming" title="ゲーミング">🌈</button>
+                                </div>
+                                
+                                <div class="gradient-color-inputs" id="gradientInputs">
+                                    <div class="gradient-row" data-index="4">
+                                        <label>最明:</label>
+                                        <input type="color" class="gradient-color" value="#ffffff">
+                                    </div>
+                                    <div class="gradient-row" data-index="3">
+                                        <label>明部:</label>
+                                        <input type="color" class="gradient-color" value="#ffaa66">
+                                    </div>
+                                    <div class="gradient-row" data-index="2">
+                                        <label>中間:</label>
+                                        <input type="color" class="gradient-color" value="#885522">
+                                    </div>
+                                    <div class="gradient-row" data-index="1">
+                                        <label>暗部:</label>
+                                        <input type="color" class="gradient-color" value="#442200">
+                                    </div>
+                                    <div class="gradient-row" data-index="0">
+                                        <label>最暗:</label>
+                                        <input type="color" class="gradient-color" value="#221100">
+                                    </div>
+                                </div>
+                                <div class="gradient-preview" id="gradientPreview"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Palette Preview -->
+                    <div class="palette-preview">
+                        <h4>生成パレット</h4>
+                        <div class="palette-row">
+                            <span class="palette-label">主役:</span>
+                            <div class="palette-colors" id="palette0"></div>
+                        </div>
+                        <div class="palette-row">
+                            <span class="palette-label">UI:</span>
+                            <div class="palette-colors" id="palette1"></div>
+                        </div>
+                        <div class="palette-row">
+                            <span class="palette-label">近景:</span>
+                            <div class="palette-colors" id="palette2"></div>
+                        </div>
+                        <div class="palette-row">
+                            <span class="palette-label">遠景:</span>
+                            <div class="palette-colors" id="palette3"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <h2>🎨 色調整（減色前）</h2>
+                    
+                    <div class="control-group">
+                        <label>
+                            明度
+                            <span class="value" id="brightnessValue">0</span>
+                        </label>
+                        <input type="range" id="brightness" min="-100" max="100" value="0">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            コントラスト
+                            <span class="value" id="contrastValue">0</span>
+                        </label>
+                        <input type="range" id="contrast" min="-100" max="100" value="0">
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="realtimePreview">
+                        <label for="realtimePreview">リアルタイムプレビュー</label>
+                    </div>
+                    
+                    <button class="btn btn-primary" id="convertBtn">
+                        🔄 変換実行
+                    </button>
+                    
+                    <div class="settings-footer">
+                        <div class="btn-group">
+                            <button class="btn btn-secondary btn-small" id="saveSettings">
+                                💾 設定保存
+                            </button>
+                            <button class="btn btn-secondary btn-small" id="resetSettings">
+                                🔄 リセット
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Panel: Output -->
+            <div class="output-column">
+                <div class="output-panel">
+                    <h3>👁️ 出力画像</h3>
+                    <div class="zoom-controls">
+                        <button class="zoom-btn" data-zoom="1">1x</button>
+                        <button class="zoom-btn active" data-zoom="2">2x</button>
+                        <button class="zoom-btn" data-zoom="4">4x</button>
+                    </div>
+                    <div class="output-canvas-wrapper" id="outputWrapper">
+                        <canvas id="outputCanvas"></canvas>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary btn-small" id="downloadOutput">
+                            💾 保存
+                        </button>
+                        <button class="btn btn-secondary btn-small" id="copyOutput">
+                            📋 コピー
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Info Panel -->
+                <div class="info-panel">
+                    <h4>📊 出力情報</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="label">出力解像度:</span>
+                            <span class="value" id="infoResolution">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">タイル数:</span>
+                            <span class="value" id="infoTiles">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">トリミング:</span>
+                            <span class="value" id="infoCrop">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">カラーモード:</span>
+                            <span class="value" id="infoColorMode">VB実機</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">階調:</span>
+                            <span class="value">4段階×4パレット</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">分類方式:</span>
+                            <span class="value">輝度ベース</span>
+                        </div>
+                    </div>
+                    <div class="vb-info">
+                        輝度による自動分類: 明→主役、中高→UI、中低→近景、暗→遠景
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Processing Overlay -->
+    <div class="processing-overlay" id="processingOverlay">
+        <div class="processing-content">
+            <div class="spinner"></div>
+            <p>変換処理中...</p>
+        </div>
+    </div>
+    
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        // Virtual Boy original palettes (Red only)
+        const VB_PALETTES = [
+            // Palette 0 (主役): 0, 192, 224, 255
+            [{ r: 0, g: 0, b: 0 }, { r: 192, g: 0, b: 0 }, { r: 224, g: 0, b: 0 }, { r: 255, g: 0, b: 0 }],
+            // Palette 1 (UI): 0, 160, 208, 255
+            [{ r: 0, g: 0, b: 0 }, { r: 160, g: 0, b: 0 }, { r: 208, g: 0, b: 0 }, { r: 255, g: 0, b: 0 }],
+            // Palette 2 (Near BG): 0, 112, 144, 192
+            [{ r: 0, g: 0, b: 0 }, { r: 112, g: 0, b: 0 }, { r: 144, g: 0, b: 0 }, { r: 192, g: 0, b: 0 }],
+            // Palette 3 (Far BG): 0, 48, 80, 112
+            [{ r: 0, g: 0, b: 0 }, { r: 48, g: 0, b: 0 }, { r: 80, g: 0, b: 0 }, { r: 112, g: 0, b: 0 }]
+        ];
+        
+        // Palette intensity ratios
+        const PALETTE_RATIOS = [
+            [0, 0.75, 0.88, 1.0],   // Palette 0
+            [0, 0.63, 0.82, 1.0],   // Palette 1
+            [0, 0.44, 0.56, 0.75],  // Palette 2
+            [0, 0.19, 0.31, 0.44]   // Palette 3
+        ];
+        
+        // Bayer matrices
+        const BAYER2 = [[0, 2], [3, 1]];
+        const BAYER4 = [
+            [0, 8, 2, 10], [12, 4, 14, 6],
+            [3, 11, 1, 9], [15, 7, 13, 5]
+        ];
+        
+        // State
+        let sourceImage = null;
+        let outputZoom = 2;
+        let convertTimeout = null;
+        let currentPalettes = VB_PALETTES;
+        
+        // DOM Elements
+        const elements = {
+            imageInput: document.getElementById('imageInput'),
+            dropZone: document.getElementById('dropZone'),
+            inputPreview: document.getElementById('inputPreview'),
+            outputMode: document.getElementById('outputMode'),
+            cropPosition: document.getElementById('cropPosition'),
+            cropPositionValue: document.getElementById('cropPositionValue'),
+            cropLabelLeft: document.getElementById('cropLabelLeft'),
+            cropLabelRight: document.getElementById('cropLabelRight'),
+            ditherMode: document.getElementById('ditherMode'),
+            brightness: document.getElementById('brightness'),
+            brightnessValue: document.getElementById('brightnessValue'),
+            contrast: document.getElementById('contrast'),
+            contrastValue: document.getElementById('contrastValue'),
+            realtimePreview: document.getElementById('realtimePreview'),
+            convertBtn: document.getElementById('convertBtn'),
+            convertBtnTop: document.getElementById('convertBtnTop'),
+            saveSettings: document.getElementById('saveSettings'),
+            resetSettings: document.getElementById('resetSettings'),
+            outputCanvas: document.getElementById('outputCanvas'),
+            outputWrapper: document.getElementById('outputWrapper'),
+            downloadOutput: document.getElementById('downloadOutput'),
+            copyOutput: document.getElementById('copyOutput'),
+            infoResolution: document.getElementById('infoResolution'),
+            infoTiles: document.getElementById('infoTiles'),
+            infoCrop: document.getElementById('infoCrop'),
+            infoColorMode: document.getElementById('infoColorMode'),
+            processingOverlay: document.getElementById('processingOverlay'),
+            toast: document.getElementById('toast'),
+            presetColors: document.getElementById('presetColors'),
+            customRgb: document.getElementById('customRgb'),
+            gradientControls: document.getElementById('gradientControls'),
+            customR: document.getElementById('customR'),
+            customG: document.getElementById('customG'),
+            customB: document.getElementById('customB'),
+            customRValue: document.getElementById('customRValue'),
+            customGValue: document.getElementById('customGValue'),
+            customBValue: document.getElementById('customBValue'),
+            customColorPreview: document.getElementById('customColorPreview'),
+            gradientInputs: document.getElementById('gradientInputs'),
+            gradientPreview: document.getElementById('gradientPreview'),
+            palette0: document.getElementById('palette0'),
+            palette1: document.getElementById('palette1'),
+            palette2: document.getElementById('palette2'),
+            palette3: document.getElementById('palette3')
+        };
+        
+        // Gradient presets
+        const GRADIENT_PRESETS = {
+            sepia: ['#221100', '#442200', '#885522', '#cc8844', '#ffddaa'],
+            cyber: ['#000022', '#220044', '#6600aa', '#aa00ff', '#ff88ff'],
+            ocean: ['#001122', '#003366', '#0066aa', '#00aadd', '#88ddff'],
+            sunset: ['#220000', '#884400', '#ff6600', '#ffaa00', '#ffee88'],
+            forest: ['#001100', '#003300', '#006622', '#22aa44', '#88dd88'],
+            gaming: ['#0000ff', '#00ff00', '#ffff00', '#ff8800', '#ff0000']
+        };
+        
+        // Current gradient state
+        let gradientPoints = 2;
+        let gradientColors = ['#442200', '#885522', '#bb7744', '#ddaa66', '#ffcc88'];
+        
+        // Default settings
+        const defaultSettings = {
+            outputMode: 'vb',
+            cropPosition: 50,
+            ditherMode: 'checker',
+            colorMode: 'vb',
+            presetColor: '255,0,0',
+            customR: 255,
+            customG: 0,
+            customB: 0,
+            gradientPoints: 2,
+            gradientColors: ['#442200', '#885522', '#bb7744', '#ddaa66', '#ffcc88'],
+            brightness: 0,
+            contrast: 0,
+            realtimePreview: false
+        };
+        
+        // Initialize
+        function init() {
+            loadSettings();
+            setupEventListeners();
+            updateAllValues();
+            updateGradientUI();
+            updatePalettes();
+            updateGradientPreview();
+        }
+        
+        function setupEventListeners() {
+            elements.imageInput.addEventListener('change', handleFileSelect);
+            
+            elements.dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                elements.dropZone.classList.add('dragover');
+            });
+            elements.dropZone.addEventListener('dragleave', () => {
+                elements.dropZone.classList.remove('dragover');
+            });
+            elements.dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                elements.dropZone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) handleFile(files[0]);
+            });
+            
+            // Color mode radio buttons
+            document.querySelectorAll('input[name="colorMode"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    updateColorModeUI();
+                    updatePalettes();
+                    triggerConvert();
+                });
+            });
+            
+            // Preset colors
+            document.querySelectorAll('.color-preset').forEach(preset => {
+                preset.addEventListener('click', () => {
+                    document.querySelectorAll('.color-preset').forEach(p => p.classList.remove('selected'));
+                    preset.classList.add('selected');
+                    updatePalettes();
+                    triggerConvert();
+                });
+            });
+            
+            // Custom RGB sliders
+            elements.customR.addEventListener('input', () => {
+                elements.customRValue.textContent = elements.customR.value;
+                updateCustomColorPreview();
+                updatePalettes();
+                triggerConvert();
+            });
+            elements.customG.addEventListener('input', () => {
+                elements.customGValue.textContent = elements.customG.value;
+                updateCustomColorPreview();
+                updatePalettes();
+                triggerConvert();
+            });
+            elements.customB.addEventListener('input', () => {
+                elements.customBValue.textContent = elements.customB.value;
+                updateCustomColorPreview();
+                updatePalettes();
+                triggerConvert();
+            });
+            
+            // Gradient controls - Point selector
+            document.querySelectorAll('.gradient-point-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.gradient-point-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    gradientPoints = parseInt(btn.dataset.points);
+                    updateGradientUI();
+                    updateGradientPreview();
+                    updatePalettes();
+                    triggerConvert();
+                });
+            });
+            
+            // Gradient presets
+            document.querySelectorAll('.gradient-preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const preset = btn.dataset.preset;
+                    if (GRADIENT_PRESETS[preset]) {
+                        gradientColors = [...GRADIENT_PRESETS[preset]];
+                        updateGradientInputValues();
+                        updateGradientPreview();
+                        updatePalettes();
+                        triggerConvert();
+                    }
+                });
+            });
+            
+            // Gradient color inputs
+            elements.gradientInputs.addEventListener('input', (e) => {
+                if (e.target.classList.contains('gradient-color')) {
+                    const row = e.target.closest('.gradient-row');
+                    const index = parseInt(row.dataset.index);
+                    gradientColors[index] = e.target.value;
+                    updateGradientPreview();
+                    updatePalettes();
+                    triggerConvert();
+                }
+            });
+            
+            elements.brightness.addEventListener('input', () => {
+                elements.brightnessValue.textContent = elements.brightness.value;
+                triggerConvert();
+            });
+            
+            elements.contrast.addEventListener('input', () => {
+                elements.contrastValue.textContent = elements.contrast.value;
+                triggerConvert();
+            });
+            
+            elements.outputMode.addEventListener('change', triggerConvert);
+            elements.ditherMode.addEventListener('change', triggerConvert);
+            
+            elements.cropPosition.addEventListener('input', () => {
+                elements.cropPositionValue.textContent = elements.cropPosition.value + '%';
+                triggerConvert();
+            });
+            
+            elements.convertBtn.addEventListener('click', () => convert());
+            elements.convertBtnTop.addEventListener('click', () => convert());
+            elements.saveSettings.addEventListener('click', saveSettings);
+            elements.resetSettings.addEventListener('click', resetSettings);
+            
+            elements.downloadOutput.addEventListener('click', () => downloadCanvas(elements.outputCanvas, 'virtualboy_output.png'));
+            elements.copyOutput.addEventListener('click', () => copyCanvasToClipboard(elements.outputCanvas));
+            
+            document.querySelectorAll('.zoom-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const zoom = parseInt(btn.dataset.zoom);
+                    document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    outputZoom = zoom;
+                    updateOutputDisplay();
+                });
+            });
+        }
+        
+        function updateColorModeUI() {
+            const mode = document.querySelector('input[name="colorMode"]:checked').value;
+            
+            document.querySelectorAll('.radio-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.mode === mode);
+            });
+            
+            elements.presetColors.style.display = mode === 'preset' ? 'flex' : 'none';
+            elements.customRgb.style.display = mode === 'custom' ? 'block' : 'none';
+            elements.gradientControls.style.display = mode === 'gradient' ? 'block' : 'none';
+            
+            const modeNames = { vb: 'VB実機', preset: 'プリセット', custom: 'カスタム', gradient: 'グラデーション' };
+            elements.infoColorMode.textContent = modeNames[mode];
+        }
+        
+        function updateCustomColorPreview() {
+            const r = elements.customR.value;
+            const g = elements.customG.value;
+            const b = elements.customB.value;
+            elements.customColorPreview.style.background = `rgb(${r},${g},${b})`;
+        }
+        
+        function updateGradientPreview() {
+            // Build gradient CSS based on current colors and points
+            const colors = getActiveGradientColors();
+            const stops = colors.map((c, i) => `${c} ${(i / (colors.length - 1)) * 100}%`).join(', ');
+            elements.gradientPreview.style.background = `linear-gradient(to right, ${stops})`;
+        }
+        
+        function updateGradientUI() {
+            const rows = elements.gradientInputs.querySelectorAll('.gradient-row');
+            rows.forEach(row => {
+                const index = parseInt(row.dataset.index);
+                // Show/hide based on gradient points
+                // 2 points: show 0 and 4
+                // 3 points: show 0, 2, 4
+                // 5 points: show all
+                let visible = false;
+                if (gradientPoints === 2) {
+                    visible = (index === 0 || index === 4);
+                } else if (gradientPoints === 3) {
+                    visible = (index === 0 || index === 2 || index === 4);
+                } else {
+                    visible = true;
+                }
+                row.classList.toggle('hidden', !visible);
+            });
+            
+            // Update labels
+            const labels = {
+                2: { 0: '暗部:', 4: '明部:' },
+                3: { 0: '暗部:', 2: '中間:', 4: '明部:' },
+                5: { 0: '最暗:', 1: '暗部:', 2: '中間:', 3: '明部:', 4: '最明:' }
+            };
+            
+            rows.forEach(row => {
+                const index = parseInt(row.dataset.index);
+                const label = row.querySelector('label');
+                if (labels[gradientPoints][index]) {
+                    label.textContent = labels[gradientPoints][index];
+                }
+            });
+        }
+        
+        function updateGradientInputValues() {
+            const inputs = elements.gradientInputs.querySelectorAll('.gradient-color');
+            inputs.forEach(input => {
+                const row = input.closest('.gradient-row');
+                const index = parseInt(row.dataset.index);
+                input.value = gradientColors[index] || '#000000';
+            });
+        }
+        
+        function getActiveGradientColors() {
+            // Return interpolated colors based on gradient points
+            if (gradientPoints === 2) {
+                return interpolateColors([gradientColors[0], gradientColors[4]], 5);
+            } else if (gradientPoints === 3) {
+                return interpolateColors([gradientColors[0], gradientColors[2], gradientColors[4]], 5);
+            } else {
+                return [...gradientColors];
+            }
+        }
+        
+        function interpolateColors(keyColors, outputCount) {
+            const result = [];
+            for (let i = 0; i < outputCount; i++) {
+                const t = i / (outputCount - 1);
+                const segmentCount = keyColors.length - 1;
+                const segment = Math.min(Math.floor(t * segmentCount), segmentCount - 1);
+                const localT = (t * segmentCount) - segment;
+                
+                const c1 = hexToRgb(keyColors[segment]);
+                const c2 = hexToRgb(keyColors[segment + 1]);
+                
+                result.push(rgbToHex(
+                    Math.round(c1.r + (c2.r - c1.r) * localT),
+                    Math.round(c1.g + (c2.g - c1.g) * localT),
+                    Math.round(c1.b + (c2.b - c1.b) * localT)
+                ));
+            }
+            return result;
+        }
+        
+        function getBaseColor() {
+            const mode = document.querySelector('input[name="colorMode"]:checked').value;
+            
+            if (mode === 'vb') {
+                return { r: 255, g: 0, b: 0 };
+            } else if (mode === 'preset') {
+                const selected = document.querySelector('.color-preset.selected');
+                const [r, g, b] = selected.dataset.color.split(',').map(Number);
+                return { r, g, b };
+            } else if (mode === 'custom') {
+                return {
+                    r: parseInt(elements.customR.value),
+                    g: parseInt(elements.customG.value),
+                    b: parseInt(elements.customB.value)
+                };
+            }
+            return { r: 255, g: 0, b: 0 };
+        }
+        
+        function generatePalettes() {
+            const mode = document.querySelector('input[name="colorMode"]:checked').value;
+            
+            if (mode === 'gradient') {
+                return generateGradientPalettes();
+            }
+            
+            const base = getBaseColor();
+            const palettes = [];
+            
+            for (let p = 0; p < 4; p++) {
+                const palette = [];
+                for (let i = 0; i < 4; i++) {
+                    const ratio = PALETTE_RATIOS[p][i];
+                    palette.push({
+                        r: Math.round(base.r * ratio),
+                        g: Math.round(base.g * ratio),
+                        b: Math.round(base.b * ratio)
+                    });
+                }
+                palettes.push(palette);
+            }
+            
+            return palettes;
+        }
+        
+        function generateGradientPalettes() {
+            // Get interpolated colors (always 5 points internally)
+            const gradColors = getActiveGradientColors();
+            
+            // Convert to RGB
+            const colors = gradColors.map(hexToRgb);
+            
+            const palettes = [];
+            
+            // Generate 16 colors by interpolating between the gradient colors
+            const allColors = [];
+            for (let i = 0; i < 16; i++) {
+                const t = i / 15;
+                const segmentCount = colors.length - 1;
+                const segment = Math.min(Math.floor(t * segmentCount), segmentCount - 1);
+                const localT = (t * segmentCount) - segment;
+                
+                const c1 = colors[segment];
+                const c2 = colors[segment + 1];
+                
+                allColors.push({
+                    r: Math.round(c1.r + (c2.r - c1.r) * localT),
+                    g: Math.round(c1.g + (c2.g - c1.g) * localT),
+                    b: Math.round(c1.b + (c2.b - c1.b) * localT)
+                });
+            }
+            
+            // Distribute to 4 palettes
+            // Palette 0 (brightest): colors 12-15
+            palettes.push([allColors[0], allColors[12], allColors[14], allColors[15]]);
+            // Palette 1: colors 8-11
+            palettes.push([allColors[0], allColors[8], allColors[10], allColors[11]]);
+            // Palette 2: colors 4-7
+            palettes.push([allColors[0], allColors[4], allColors[6], allColors[7]]);
+            // Palette 3 (darkest): colors 0-3
+            palettes.push([allColors[0], allColors[1], allColors[2], allColors[3]]);
+            
+            return palettes;
+        }
+        
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : { r: 0, g: 0, b: 0 };
+        }
+        
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('');
+        }
+        
+        function updatePalettes() {
+            currentPalettes = generatePalettes();
+            
+            for (let p = 0; p < 4; p++) {
+                const container = elements[`palette${p}`];
+                container.innerHTML = '';
+                for (let i = 0; i < 4; i++) {
+                    const color = currentPalettes[p][i];
+                    const swatch = document.createElement('div');
+                    swatch.className = 'palette-swatch';
+                    swatch.style.background = rgbToHex(color.r, color.g, color.b);
+                    container.appendChild(swatch);
+                }
+            }
+        }
+        
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        }
+        
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showToast('画像ファイルを選択してください');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    sourceImage = img;
+                    elements.inputPreview.innerHTML = '';
+                    const previewImg = document.createElement('img');
+                    previewImg.src = e.target.result;
+                    elements.inputPreview.appendChild(previewImg);
+                    showToast('画像を読み込みました。変換ボタンを押してください');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function triggerConvert() {
+            if (!sourceImage || !elements.realtimePreview.checked) return;
+            clearTimeout(convertTimeout);
+            convertTimeout = setTimeout(() => convert(), 300);
+        }
+        
+        function updateAllValues() {
+            elements.cropPositionValue.textContent = elements.cropPosition.value + '%';
+            elements.brightnessValue.textContent = elements.brightness.value;
+            elements.contrastValue.textContent = elements.contrast.value;
+            elements.customRValue.textContent = elements.customR.value;
+            elements.customGValue.textContent = elements.customG.value;
+            elements.customBValue.textContent = elements.customB.value;
+            updateCustomColorPreview();
+            updateColorModeUI();
+        }
+        
+        function colorDistance(c1, c2) {
+            return Math.pow(c1.r - c2.r, 2) + Math.pow(c1.g - c2.g, 2) + Math.pow(c1.b - c2.b, 2);
+        }
+        
+        // Get luminance (0-255)
+        function getLuminance(r, g, b) {
+            return 0.299 * r + 0.587 * g + 0.114 * b;
+        }
+        
+        // Determine which palette to use based on luminance
+        function getPaletteIndex(luminance) {
+            const normalized = luminance / 255;
+            if (normalized >= 0.75) return 0; // Bright -> Main subject
+            if (normalized >= 0.50) return 1; // Mid-high -> UI
+            if (normalized >= 0.25) return 2; // Mid-low -> Near BG
+            return 3; // Dark -> Far BG
+        }
+        
+        async function convert() {
+            if (!sourceImage) {
+                showToast('画像を選択してください');
+                return;
+            }
+            
+            elements.processingOverlay.classList.add('active');
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
+            try {
+                const settings = getSettings();
+                const dims = calculateDimensions(sourceImage.width, sourceImage.height, settings.outputMode, settings.cropPosition);
+                
+                if (dims.cropDirection === 'horizontal') {
+                    elements.cropLabelLeft.textContent = '左';
+                    elements.cropLabelRight.textContent = '右';
+                } else {
+                    elements.cropLabelLeft.textContent = '上';
+                    elements.cropLabelRight.textContent = '下';
+                }
+                
+                const workCanvas = document.createElement('canvas');
+                workCanvas.width = dims.width;
+                workCanvas.height = dims.height;
+                const workCtx = workCanvas.getContext('2d');
+                
+                workCtx.imageSmoothingEnabled = false;
+                workCtx.drawImage(sourceImage, dims.cropX, dims.cropY, dims.srcW, dims.srcH, 0, 0, dims.width, dims.height);
+                
+                let imageData = workCtx.getImageData(0, 0, dims.width, dims.height);
+                
+                // Apply color adjustments
+                imageData = applyColorAdjustments(imageData, settings);
+                
+                // Apply VB conversion
+                imageData = applyVirtualBoyConversion(imageData, dims.width, dims.height, settings.ditherMode);
+                
+                workCtx.putImageData(imageData, 0, 0);
+                
+                elements.outputCanvas.width = dims.width;
+                elements.outputCanvas.height = dims.height;
+                const outputCtx = elements.outputCanvas.getContext('2d');
+                outputCtx.imageSmoothingEnabled = false;
+                outputCtx.drawImage(workCanvas, 0, 0);
+                
+                updateInfo(dims, settings);
+                updateOutputDisplay();
+                
+            } catch (error) {
+                console.error('Conversion error:', error);
+                showToast('変換エラーが発生しました');
+            }
+            
+            elements.processingOverlay.classList.remove('active');
+        }
+        
+        function calculateDimensions(srcWidth, srcHeight, mode, cropPosition = 50) {
+            let width, height;
+            
+            if (mode === 'vb') {
+                width = 384;
+                height = 224;
+            } else if (mode === 'qvga') {
+                width = 320;
+                height = 240;
+            } else if (mode === 'qvga2x') {
+                width = 640;
+                height = 480;
+            } else {
+                const aspect = srcWidth / srcHeight;
+                if (aspect >= 1) {
+                    height = 224;
+                    width = Math.round(height * aspect);
+                } else {
+                    width = 384;
+                    height = Math.round(width / aspect);
+                }
+            }
+            
+            // Align to 8 pixels
+            width = Math.floor(width / 8) * 8;
+            height = Math.floor(height / 8) * 8;
+            width = Math.max(8, width);
+            height = Math.max(8, height);
+            
+            const outputAspect = width / height;
+            const srcAspect = srcWidth / srcHeight;
+            const positionRatio = (cropPosition - 25) / 50;
+            
+            let srcW, srcH, cropX, cropY, cropDirection;
+            
+            if (srcAspect > outputAspect) {
+                srcH = srcHeight;
+                srcW = Math.round(srcHeight * outputAspect);
+                const maxCropX = srcWidth - srcW;
+                cropX = Math.floor(maxCropX * positionRatio);
+                cropY = 0;
+                cropDirection = 'horizontal';
+            } else {
+                srcW = srcWidth;
+                srcH = Math.round(srcWidth / outputAspect);
+                const maxCropY = srcHeight - srcH;
+                cropY = Math.floor(maxCropY * positionRatio);
+                cropX = 0;
+                cropDirection = 'vertical';
+            }
+            
+            return { width, height, cropX, cropY, srcW, srcH, cropDirection };
+        }
+        
+        function applyColorAdjustments(imageData, settings) {
+            const data = imageData.data;
+            const brightness = settings.brightness / 100;
+            const contrast = (settings.contrast + 100) / 100;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i], g = data[i + 1], b = data[i + 2];
+                
+                r += brightness * 255;
+                g += brightness * 255;
+                b += brightness * 255;
+                
+                r = ((r / 255 - 0.5) * contrast + 0.5) * 255;
+                g = ((g / 255 - 0.5) * contrast + 0.5) * 255;
+                b = ((b / 255 - 0.5) * contrast + 0.5) * 255;
+                
+                data[i] = Math.max(0, Math.min(255, r));
+                data[i + 1] = Math.max(0, Math.min(255, g));
+                data[i + 2] = Math.max(0, Math.min(255, b));
+            }
+            return imageData;
+        }
+        
+        function applyVirtualBoyConversion(imageData, width, height, ditherMode) {
+            const data = imageData.data;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const i = (y * width + x) * 4;
+                    let r = data[i], g = data[i + 1], b = data[i + 2];
+                    
+                    // Calculate luminance
+                    const lum = getLuminance(r, g, b);
+                    
+                    // Determine palette based on luminance
+                    const paletteIndex = getPaletteIndex(lum);
+                    const palette = currentPalettes[paletteIndex];
+                    
+                    // Apply dither threshold
+                    let threshold = 0;
+                    if (ditherMode === 'checker') {
+                        threshold = ((x + y) % 2) * 50 - 25;
+                    } else if (ditherMode === 'bayer2') {
+                        threshold = (BAYER2[y % 2][x % 2] / 4 - 0.5) * 50;
+                    } else if (ditherMode === 'bayer4') {
+                        threshold = (BAYER4[y % 4][x % 4] / 16 - 0.5) * 50;
+                    }
+                    
+                    const adjustedLum = lum + threshold;
+                    
+                    // Find nearest color in the selected palette
+                    let nearest = palette[0];
+                    let minDist = Infinity;
+                    
+                    for (const color of palette) {
+                        // Compare by intensity
+                        const colorLum = getLuminance(color.r, color.g, color.b);
+                        const dist = Math.abs(adjustedLum - colorLum);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            nearest = color;
+                        }
+                    }
+                    
+                    data[i] = nearest.r;
+                    data[i + 1] = nearest.g;
+                    data[i + 2] = nearest.b;
+                }
+            }
+            
+            return imageData;
+        }
+        
+        function updateOutputDisplay() {
+            const canvas = elements.outputCanvas;
+            canvas.style.width = (canvas.width * outputZoom) + 'px';
+            canvas.style.height = (canvas.height * outputZoom) + 'px';
+        }
+        
+        function updateInfo(dims, settings) {
+            elements.infoResolution.textContent = `${dims.width} × ${dims.height}`;
+            elements.infoTiles.textContent = `${dims.width / 8} × ${dims.height / 8}`;
+            
+            if (dims.cropX > 0 || dims.cropY > 0) {
+                const direction = dims.cropDirection === 'horizontal' ? '左右' : '上下';
+                elements.infoCrop.textContent = `${direction} ${settings.cropPosition}%`;
+            } else {
+                elements.infoCrop.textContent = 'なし';
+            }
+        }
+        
+        function getSettings() {
+            return {
+                outputMode: elements.outputMode.value,
+                cropPosition: parseInt(elements.cropPosition.value),
+                ditherMode: elements.ditherMode.value,
+                colorMode: document.querySelector('input[name="colorMode"]:checked').value,
+                brightness: parseInt(elements.brightness.value),
+                contrast: parseInt(elements.contrast.value),
+                realtimePreview: elements.realtimePreview.checked
+            };
+        }
+        
+        function saveSettings() {
+            const settings = {
+                ...getSettings(),
+                presetColor: document.querySelector('.color-preset.selected')?.dataset.color || '255,0,0',
+                customR: parseInt(elements.customR.value),
+                customG: parseInt(elements.customG.value),
+                customB: parseInt(elements.customB.value),
+                gradientPoints: gradientPoints,
+                gradientColors: gradientColors
+            };
+            document.cookie = `vb_settings=${JSON.stringify(settings)}; max-age=31536000; path=/`;
+            showToast('設定を保存しました');
+        }
+        
+        function loadSettings() {
+            const match = document.cookie.match(/vb_settings=([^;]+)/);
+            if (match) {
+                try {
+                    const settings = JSON.parse(match[1]);
+                    applySettings(settings);
+                } catch (e) {
+                    console.error('Failed to load settings:', e);
+                }
+            }
+        }
+        
+        function applySettings(settings) {
+            elements.outputMode.value = settings.outputMode || defaultSettings.outputMode;
+            elements.cropPosition.value = settings.cropPosition || defaultSettings.cropPosition;
+            elements.ditherMode.value = settings.ditherMode || defaultSettings.ditherMode;
+            elements.brightness.value = settings.brightness || defaultSettings.brightness;
+            elements.contrast.value = settings.contrast || defaultSettings.contrast;
+            elements.realtimePreview.checked = settings.realtimePreview !== undefined ? settings.realtimePreview : defaultSettings.realtimePreview;
+            
+            // Color mode
+            const colorModeRadio = document.querySelector(`input[name="colorMode"][value="${settings.colorMode || 'vb'}"]`);
+            if (colorModeRadio) colorModeRadio.checked = true;
+            
+            // Preset color
+            if (settings.presetColor) {
+                document.querySelectorAll('.color-preset').forEach(p => {
+                    p.classList.toggle('selected', p.dataset.color === settings.presetColor);
+                });
+            }
+            
+            // Custom RGB
+            elements.customR.value = settings.customR || defaultSettings.customR;
+            elements.customG.value = settings.customG || defaultSettings.customG;
+            elements.customB.value = settings.customB || defaultSettings.customB;
+            
+            // Gradient
+            gradientPoints = settings.gradientPoints || defaultSettings.gradientPoints;
+            gradientColors = settings.gradientColors || [...defaultSettings.gradientColors];
+            
+            // Update gradient point buttons
+            document.querySelectorAll('.gradient-point-btn').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.points) === gradientPoints);
+            });
+            
+            updateGradientInputValues();
+            updateGradientUI();
+            
+            updateAllValues();
+        }
+        
+        function resetSettings() {
+            gradientPoints = defaultSettings.gradientPoints;
+            gradientColors = [...defaultSettings.gradientColors];
+            applySettings(defaultSettings);
+            updateGradientUI();
+            updateGradientInputValues();
+            updateGradientPreview();
+            updatePalettes();
+            showToast('設定をリセットしました');
+            if (sourceImage) convert();
+        }
+        
+        function downloadCanvas(canvas, filename) {
+            const dataUrl = canvas.toDataURL('image/png');
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            
+            if (isIOS) {
+                const newTab = window.open();
+                if (newTab) {
+                    newTab.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta name="viewport" content="width=device-width, initial-scale=1">
+                            <title>${filename}</title>
+                            <style>
+                                body { margin: 0; padding: 20px; background: #0a0a0a; color: #ff6666; font-family: -apple-system, sans-serif; text-align: center; }
+                                img { image-rendering: pixelated; border: 2px solid #440000; max-width: 100%; margin-top: 10px; }
+                                .hint { background: #ff0000; color: white; padding: 15px; border-radius: 8px; margin: 10px; font-size: 16px; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="hint">📱 画像を長押し →「写真に追加」で保存</div>
+                            <img src="${dataUrl}" />
+                        </body>
+                        </html>
+                    `);
+                    newTab.document.close();
+                    showToast('新しいタブで開きました');
+                } else {
+                    window.location.href = dataUrl;
+                }
+            } else {
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('ダウンロードを開始しました');
+            }
+        }
+        
+        async function copyCanvasToClipboard(canvas) {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            
+            if (isIOS) {
+                openImageInNewTab(canvas, '画像を長押しでコピーまたは保存');
+                return;
+            }
+            
+            try {
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                showToast('クリップボードにコピーしました');
+                return;
+            } catch (e) {
+                console.log('Clipboard API not available, using fallback');
+            }
+            
+            openImageInNewTab(canvas, '画像を右クリック →「画像をコピー」');
+        }
+        
+        function openImageInNewTab(canvas, message) {
+            try {
+                const dataUrl = canvas.toDataURL('image/png');
+                const newTab = window.open();
+                if (newTab) {
+                    newTab.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta name="viewport" content="width=device-width, initial-scale=1">
+                            <title>画像</title>
+                            <style>
+                                body { margin: 0; padding: 20px; background: #0a0a0a; color: #ff6666; font-family: -apple-system, sans-serif; text-align: center; }
+                                img { image-rendering: pixelated; border: 2px solid #440000; max-width: 100%; margin-top: 10px; }
+                                .hint { background: #ff0000; color: white; padding: 15px; border-radius: 8px; margin: 10px; font-size: 16px; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="hint">📋 ${message}</div>
+                            <img src="${dataUrl}" />
+                        </body>
+                        </html>
+                    `);
+                    newTab.document.close();
+                    showToast('新しいタブで開きました');
+                } else {
+                    showToast('ポップアップがブロックされました');
+                }
+            } catch (e) {
+                console.error('Failed to open image:', e);
+                showToast('エラーが発生しました');
+            }
+        }
+        
+        function showToast(message) {
+            elements.toast.textContent = message;
+            elements.toast.classList.add('show');
+            setTimeout(() => elements.toast.classList.remove('show'), 2000);
+        }
+        
+        init();
+    </script>
+</body>
+</html>

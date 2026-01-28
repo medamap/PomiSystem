@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NES BG Converter</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-tertiary: #0f3460;
+            --accent: #e94560;
+            --accent-hover: #ff6b6b;
+            --text-primary: #eee;
+            --text-secondary: #aaa;
+            --border: #333;
+            --nes-red: #e94560;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Meiryo', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #e94560, #ff6b6b, #ffa300);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        header p {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 1000px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+        
+        .panel h2 {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            color: var(--accent);
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+        }
+        
+        .control-group .value {
+            float: right;
+            color: var(--accent);
+            font-weight: bold;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--bg-tertiary);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--accent-hover);
+        }
+        
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            width: 100%;
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+        
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 0.85em;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn-group .btn {
+            flex: 1;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 40px 20px;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .file-input-label:hover {
+            border-color: var(--accent);
+            background: rgba(233, 69, 96, 0.1);
+        }
+        
+        .file-input-label.dragover {
+            border-color: var(--accent);
+            background: rgba(233, 69, 96, 0.2);
+        }
+        
+        .preview-area {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .preview-area img {
+            max-width: 100%;
+            max-height: 200px;
+            image-rendering: pixelated;
+        }
+        
+        .preview-area .placeholder {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+        
+        .output-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 800px) {
+            .output-section {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .output-panel {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+        
+        .output-panel h3 {
+            font-size: 1em;
+            margin-bottom: 15px;
+            color: var(--accent);
+        }
+        
+        .output-canvas-wrapper {
+            background: #000;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 15px;
+            overflow: auto;
+        }
+        
+        .output-canvas-wrapper canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        .zoom-controls {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+            justify-content: center;
+        }
+        
+        .zoom-btn {
+            padding: 5px 12px;
+            font-size: 0.8em;
+            border-radius: 4px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            cursor: pointer;
+        }
+        
+        .zoom-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        .info-panel {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .info-panel h4 {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            color: var(--text-secondary);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+        }
+        
+        .info-item .label {
+            color: var(--text-secondary);
+        }
+        
+        .info-item .value {
+            color: var(--accent);
+            font-weight: bold;
+        }
+        
+        .chr-usage {
+            margin-top: 15px;
+        }
+        
+        .chr-bar {
+            height: 20px;
+            background: var(--bg-primary);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .chr-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000);
+            transition: width 0.3s;
+            border-radius: 10px;
+        }
+        
+        .chr-bar-fill.warning {
+            background: #ffff00;
+        }
+        
+        .chr-bar-fill.danger {
+            background: #ff0000;
+        }
+        
+        .palette-display {
+            margin-top: 15px;
+        }
+        
+        .palette-display h4 {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .palette-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 0.8em;
+        }
+        
+        .palette-label {
+            width: 80px;
+            color: var(--text-secondary);
+        }
+        
+        .palette-colors {
+            display: flex;
+            gap: 3px;
+        }
+        
+        .palette-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
+            border: 1px solid var(--border);
+        }
+        
+        .palette-swatch.shared {
+            border: 2px solid #fff;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+        }
+        
+        .section-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 20px 0;
+        }
+        
+        .processing-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .processing-overlay.active {
+            display: flex;
+        }
+        
+        .processing-content {
+            text-align: center;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: var(--accent);
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1001;
+        }
+        
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .settings-footer {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+        
+        .nes-palette-info {
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 NES BG Converter 魔改造</h1>
+            <p>ファミコン風 BG変換ツール（拡張版: 最大32パレット×16色、2048 CHR対応）</p>
+        </header>
+        
+        <div class="main-layout">
+            <!-- Left Panel: Controls -->
+            <div class="controls-column">
+                <div class="panel">
+                    <h2>📁 画像入力</h2>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="imageInput" accept="image/*">
+                        <div class="file-input-label" id="dropZone">
+                            <span>📷 クリックまたはドラッグ&ドロップ</span>
+                        </div>
+                    </div>
+                    <div class="preview-area" id="inputPreview">
+                        <span class="placeholder">画像を選択してください</span>
+                    </div>
+                    
+                    <button class="btn btn-primary" id="convertBtnTop" style="margin-top: 15px;">
+                        🔄 変換実行
+                    </button>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <h2>⚙️ 変換設定</h2>
+                    
+                    <div class="control-group">
+                        <label>
+                            出力サイズモード
+                        </label>
+                        <select id="outputMode">
+                            <option value="nes" selected>NES標準（256×240）</option>
+                            <option value="qvga">QVGA（320×240）</option>
+                            <option value="qvga2x">QVGA 2倍（640×480）</option>
+                            <option value="auto">オート（アスペクト比維持）</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            トリミング位置
+                            <span class="value" id="cropPositionValue">50%</span>
+                        </label>
+                        <input type="range" id="cropPosition" min="25" max="75" value="50">
+                        <div class="range-labels">
+                            <span id="cropLabelLeft">上/左</span>
+                            <span>中央</span>
+                            <span id="cropLabelRight">下/右</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            ディザリング方式
+                        </label>
+                        <select id="ditherMode">
+                            <option value="none">なし（最近傍色）</option>
+                            <option value="checker" selected>市松模様ディザ</option>
+                            <option value="bayer2">Ordered Dither (Bayer 2×2)</option>
+                            <option value="bayer4">Ordered Dither (Bayer 4×4)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <h2>🎨 パレット設定（魔改造）</h2>
+                    
+                    <div class="control-group">
+                        <label>
+                            パレット本数
+                            <span class="value" id="paletteCountValue">4</span>
+                        </label>
+                        <input type="range" id="paletteCount" min="4" max="32" step="4" value="4">
+                        <div class="range-labels">
+                            <span>NES標準:4</span>
+                            <span>16</span>
+                            <span>魔改造:32</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            パレット内色数
+                            <span class="value" id="colorsPerPaletteValue">4</span>
+                        </label>
+                        <input type="range" id="colorsPerPalette" min="4" max="16" step="4" value="4">
+                        <div class="range-labels">
+                            <span>NES標準:4</span>
+                            <span>8</span>
+                            <span>魔改造:16</span>
+                        </div>
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <h2>🧩 CHR設定</h2>
+                    
+                    <div class="control-group">
+                        <label>
+                            CHR定義数上限
+                            <span class="value" id="chrLimitValue">256</span>
+                        </label>
+                        <input type="range" id="chrLimit" min="128" max="2048" step="32" value="256">
+                        <div class="range-labels">
+                            <span>128</span>
+                            <span>NES標準:256</span>
+                            <span>2048</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            タイル類似度閾値
+                            <span class="value" id="similarityValue">15</span>
+                        </label>
+                        <input type="range" id="similarity" min="0" max="50" value="15">
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <h2>🎨 色調整（減色前）</h2>
+                    
+                    <div class="control-group">
+                        <label>
+                            明度
+                            <span class="value" id="brightnessValue">0</span>
+                        </label>
+                        <input type="range" id="brightness" min="-100" max="100" value="0">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            コントラスト
+                            <span class="value" id="contrastValue">0</span>
+                        </label>
+                        <input type="range" id="contrast" min="-100" max="100" value="0">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            彩度
+                            <span class="value" id="saturationValue">0</span>
+                        </label>
+                        <input type="range" id="saturation" min="-100" max="100" value="0">
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="realtimePreview">
+                        <label for="realtimePreview">リアルタイムプレビュー（重い場合はOFF推奨）</label>
+                    </div>
+                    
+                    <button class="btn btn-primary" id="convertBtn">
+                        🔄 変換実行
+                    </button>
+                    
+                    <div class="settings-footer">
+                        <div class="btn-group">
+                            <button class="btn btn-secondary btn-small" id="saveSettings">
+                                💾 設定保存
+                            </button>
+                            <button class="btn btn-secondary btn-small" id="resetSettings">
+                                🔄 リセット
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Palette Display -->
+                <div class="panel" style="margin-top: 20px;">
+                    <h2>🎨 生成パレット</h2>
+                    <div class="palette-display" id="paletteDisplay">
+                        <div class="palette-row">
+                            <span class="palette-label">共通背景:</span>
+                            <div class="palette-colors">
+                                <div class="palette-swatch shared" id="bgColor" style="background: #000;"></div>
+                            </div>
+                        </div>
+                        <div id="paletteContainer"></div>
+                    </div>
+                    <div class="nes-palette-info">
+                        NES NTSC 54色パレットから自動選択（魔改造モード対応）
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Panel: Output -->
+            <div class="output-column">
+                <div class="output-section">
+                    <div class="output-panel">
+                        <h3>📺 出力画像</h3>
+                        <div class="zoom-controls">
+                            <button class="zoom-btn" data-zoom="1" data-target="output">1x</button>
+                            <button class="zoom-btn active" data-zoom="2" data-target="output">2x</button>
+                            <button class="zoom-btn" data-zoom="4" data-target="output">4x</button>
+                        </div>
+                        <div class="output-canvas-wrapper" id="outputWrapper">
+                            <canvas id="outputCanvas"></canvas>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary btn-small" id="downloadOutput">
+                                💾 保存
+                            </button>
+                            <button class="btn btn-secondary btn-small" id="copyOutput">
+                                📋 コピー
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="output-panel">
+                        <h3>🧩 CHR定義画像</h3>
+                        <div class="zoom-controls">
+                            <button class="zoom-btn" data-zoom="1" data-target="chr">1x</button>
+                            <button class="zoom-btn active" data-zoom="2" data-target="chr">2x</button>
+                            <button class="zoom-btn" data-zoom="4" data-target="chr">4x</button>
+                        </div>
+                        <div class="output-canvas-wrapper" id="chrWrapper">
+                            <canvas id="chrCanvas"></canvas>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary btn-small" id="downloadChr">
+                                💾 保存
+                            </button>
+                            <button class="btn btn-secondary btn-small" id="copyChr">
+                                📋 コピー
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Info Panel -->
+                <div class="info-panel">
+                    <h4>📊 出力情報</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="label">出力解像度:</span>
+                            <span class="value" id="infoResolution">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">タイル数:</span>
+                            <span class="value" id="infoTiles">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">使用CHR数:</span>
+                            <span class="value" id="infoChrUsed">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">CHR上限:</span>
+                            <span class="value" id="infoChrLimit">256</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">属性ブロック:</span>
+                            <span class="value" id="infoAttrBlocks">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">トリミング:</span>
+                            <span class="value" id="infoCrop">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">パレット構成:</span>
+                            <span class="value" id="infoPaletteConfig">4本×4色</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">最大色数:</span>
+                            <span class="value" id="infoMaxColors">13</span>
+                        </div>
+                    </div>
+                    <div class="chr-usage">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85em;">
+                            <span>CHR使用率</span>
+                            <span id="chrPercentage">0%</span>
+                        </div>
+                        <div class="chr-bar">
+                            <div class="chr-bar-fill" id="chrBarFill" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Processing Overlay -->
+    <div class="processing-overlay" id="processingOverlay">
+        <div class="processing-content">
+            <div class="spinner"></div>
+            <p>変換処理中...</p>
+        </div>
+    </div>
+    
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        // NES NTSC Palette (54 colors)
+        const NES_PALETTE = [
+            {r:0,g:0,b:0},{r:29,g:43,b:83},{r:126,g:37,b:83},{r:0,g:135,b:81},
+            {r:171,g:82,b:54},{r:95,g:87,b:79},{r:194,g:195,b:199},{r:255,g:241,b:232},
+            {r:255,g:0,b:77},{r:255,g:163,b:0},{r:255,g:236,b:39},{r:0,g:228,b:54},
+            {r:41,g:173,b:255},{r:131,g:118,b:156},{r:255,g:119,b:168},{r:255,g:204,b:170},
+            {r:41,g:24,b:20},{r:17,g:29,b:53},{r:66,g:33,b:54},{r:18,g:83,b:89},
+            {r:116,g:47,b:41},{r:73,g:51,b:59},{r:162,g:136,b:121},{r:243,g:239,b:125},
+            {r:190,g:38,b:51},{r:224,g:111,b:139},{r:224,g:168,b:114},{r:178,g:220,b:239},
+            {r:79,g:103,b:129},{r:142,g:71,b:140},{r:163,g:206,b:39},{r:68,g:137,b:26},
+            {r:42,g:79,b:62},{r:109,g:117,b:141},{r:157,g:157,b:157},{r:255,g:255,b:255},
+            {r:75,g:105,b:47},{r:106,g:106,b:106},{r:143,g:86,b:59},{r:194,g:195,b:199},
+            {r:223,g:113,b:38},{r:217,g:87,b:99},{r:215,g:123,b:186},{r:251,g:242,b:54},
+            {r:153,g:229,b:80},{r:106,g:190,b:48},{r:55,g:148,b:110},{r:95,g:205,b:228},
+            {r:203,g:219,b:252},{r:173,g:181,b:189},{r:238,g:195,b:154},{r:105,g:106,b:106}
+        ];
+        
+        // Bayer matrices
+        const BAYER2 = [[0, 2], [3, 1]];
+        const BAYER4 = [
+            [0, 8, 2, 10], [12, 4, 14, 6],
+            [3, 11, 1, 9], [15, 7, 13, 5]
+        ];
+        
+        // State
+        let sourceImage = null;
+        let outputZoom = 2;
+        let chrZoom = 2;
+        let convertTimeout = null;
+        let generatedPalettes = null;
+        
+        // DOM Elements
+        const elements = {
+            imageInput: document.getElementById('imageInput'),
+            dropZone: document.getElementById('dropZone'),
+            inputPreview: document.getElementById('inputPreview'),
+            outputMode: document.getElementById('outputMode'),
+            cropPosition: document.getElementById('cropPosition'),
+            cropPositionValue: document.getElementById('cropPositionValue'),
+            cropLabelLeft: document.getElementById('cropLabelLeft'),
+            cropLabelRight: document.getElementById('cropLabelRight'),
+            ditherMode: document.getElementById('ditherMode'),
+            paletteCount: document.getElementById('paletteCount'),
+            paletteCountValue: document.getElementById('paletteCountValue'),
+            colorsPerPalette: document.getElementById('colorsPerPalette'),
+            colorsPerPaletteValue: document.getElementById('colorsPerPaletteValue'),
+            paletteContainer: document.getElementById('paletteContainer'),
+            chrLimit: document.getElementById('chrLimit'),
+            chrLimitValue: document.getElementById('chrLimitValue'),
+            similarity: document.getElementById('similarity'),
+            similarityValue: document.getElementById('similarityValue'),
+            brightness: document.getElementById('brightness'),
+            brightnessValue: document.getElementById('brightnessValue'),
+            contrast: document.getElementById('contrast'),
+            contrastValue: document.getElementById('contrastValue'),
+            saturation: document.getElementById('saturation'),
+            saturationValue: document.getElementById('saturationValue'),
+            realtimePreview: document.getElementById('realtimePreview'),
+            convertBtn: document.getElementById('convertBtn'),
+            convertBtnTop: document.getElementById('convertBtnTop'),
+            saveSettings: document.getElementById('saveSettings'),
+            resetSettings: document.getElementById('resetSettings'),
+            outputCanvas: document.getElementById('outputCanvas'),
+            chrCanvas: document.getElementById('chrCanvas'),
+            outputWrapper: document.getElementById('outputWrapper'),
+            chrWrapper: document.getElementById('chrWrapper'),
+            downloadOutput: document.getElementById('downloadOutput'),
+            copyOutput: document.getElementById('copyOutput'),
+            downloadChr: document.getElementById('downloadChr'),
+            copyChr: document.getElementById('copyChr'),
+            infoResolution: document.getElementById('infoResolution'),
+            infoTiles: document.getElementById('infoTiles'),
+            infoChrUsed: document.getElementById('infoChrUsed'),
+            infoChrLimit: document.getElementById('infoChrLimit'),
+            infoAttrBlocks: document.getElementById('infoAttrBlocks'),
+            infoCrop: document.getElementById('infoCrop'),
+            infoPaletteConfig: document.getElementById('infoPaletteConfig'),
+            infoMaxColors: document.getElementById('infoMaxColors'),
+            chrPercentage: document.getElementById('chrPercentage'),
+            chrBarFill: document.getElementById('chrBarFill'),
+            processingOverlay: document.getElementById('processingOverlay'),
+            toast: document.getElementById('toast'),
+            bgColor: document.getElementById('bgColor')
+        };
+        
+        // Default settings
+        const defaultSettings = {
+            outputMode: 'nes',
+            cropPosition: 50,
+            ditherMode: 'checker',
+            paletteCount: 4,
+            colorsPerPalette: 4,
+            chrLimit: 256,
+            similarity: 15,
+            brightness: 0,
+            contrast: 0,
+            saturation: 0,
+            realtimePreview: false
+        };
+        
+        // Initialize
+        function init() {
+            loadSettings();
+            setupEventListeners();
+            updateAllValues();
+            initPaletteDisplay();
+        }
+        
+        function initPaletteDisplay() {
+            updatePaletteContainerUI();
+        }
+        
+        function updatePaletteContainerUI() {
+            const paletteCount = parseInt(elements.paletteCount.value);
+            const colorsPerPalette = parseInt(elements.colorsPerPalette.value);
+            const container = elements.paletteContainer;
+            container.innerHTML = '';
+            
+            // Show max 8 palettes in UI, indicate if more
+            const showCount = Math.min(paletteCount, 8);
+            
+            for (let i = 0; i < showCount; i++) {
+                const row = document.createElement('div');
+                row.className = 'palette-row';
+                row.innerHTML = `
+                    <span class="palette-label">パレット${i}:</span>
+                    <div class="palette-colors" id="palette${i}"></div>
+                `;
+                container.appendChild(row);
+                
+                const colorsDiv = row.querySelector('.palette-colors');
+                for (let j = 0; j < colorsPerPalette; j++) {
+                    const swatch = document.createElement('div');
+                    swatch.className = 'palette-swatch' + (j === 0 ? ' shared' : '');
+                    swatch.style.background = '#000';
+                    colorsDiv.appendChild(swatch);
+                }
+            }
+            
+            if (paletteCount > 8) {
+                const more = document.createElement('div');
+                more.className = 'palette-row';
+                more.innerHTML = `<span class="palette-label" style="color: var(--accent);">... 他 ${paletteCount - 8} パレット</span>`;
+                container.appendChild(more);
+            }
+            
+            // Update info
+            const maxColors = 1 + paletteCount * (colorsPerPalette - 1);
+            elements.infoPaletteConfig.textContent = `${paletteCount}本×${colorsPerPalette}色`;
+            elements.infoMaxColors.textContent = maxColors;
+        }
+        
+        // Event Listeners
+        function setupEventListeners() {
+            elements.imageInput.addEventListener('change', handleFileSelect);
+            
+            elements.dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                elements.dropZone.classList.add('dragover');
+            });
+            elements.dropZone.addEventListener('dragleave', () => {
+                elements.dropZone.classList.remove('dragover');
+            });
+            elements.dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                elements.dropZone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) handleFile(files[0]);
+            });
+            
+            elements.chrLimit.addEventListener('input', () => {
+                elements.chrLimitValue.textContent = elements.chrLimit.value;
+                elements.infoChrLimit.textContent = elements.chrLimit.value;
+                triggerConvert();
+            });
+            
+            elements.similarity.addEventListener('input', () => {
+                elements.similarityValue.textContent = elements.similarity.value;
+                triggerConvert();
+            });
+            
+            elements.brightness.addEventListener('input', () => {
+                elements.brightnessValue.textContent = elements.brightness.value;
+                triggerConvert();
+            });
+            
+            elements.contrast.addEventListener('input', () => {
+                elements.contrastValue.textContent = elements.contrast.value;
+                triggerConvert();
+            });
+            
+            elements.saturation.addEventListener('input', () => {
+                elements.saturationValue.textContent = elements.saturation.value;
+                triggerConvert();
+            });
+            
+            elements.outputMode.addEventListener('change', triggerConvert);
+            elements.ditherMode.addEventListener('change', triggerConvert);
+            
+            elements.paletteCount.addEventListener('input', () => {
+                elements.paletteCountValue.textContent = elements.paletteCount.value;
+                updatePaletteContainerUI();
+                triggerConvert();
+            });
+            
+            elements.colorsPerPalette.addEventListener('input', () => {
+                elements.colorsPerPaletteValue.textContent = elements.colorsPerPalette.value;
+                updatePaletteContainerUI();
+                triggerConvert();
+            });
+            
+            elements.cropPosition.addEventListener('input', () => {
+                elements.cropPositionValue.textContent = elements.cropPosition.value + '%';
+                triggerConvert();
+            });
+            
+            elements.convertBtn.addEventListener('click', () => convert());
+            elements.convertBtnTop.addEventListener('click', () => convert());
+            elements.saveSettings.addEventListener('click', saveSettings);
+            elements.resetSettings.addEventListener('click', resetSettings);
+            
+            elements.downloadOutput.addEventListener('click', () => downloadCanvas(elements.outputCanvas, 'nes_output.png'));
+            elements.copyOutput.addEventListener('click', () => copyCanvasToClipboard(elements.outputCanvas));
+            elements.downloadChr.addEventListener('click', () => downloadCanvas(elements.chrCanvas, 'nes_chr.png'));
+            elements.copyChr.addEventListener('click', () => copyCanvasToClipboard(elements.chrCanvas));
+            
+            document.querySelectorAll('.zoom-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const zoom = parseInt(btn.dataset.zoom);
+                    const target = btn.dataset.target;
+                    document.querySelectorAll(`.zoom-btn[data-target="${target}"]`).forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    if (target === 'output') {
+                        outputZoom = zoom;
+                        updateOutputDisplay();
+                    } else {
+                        chrZoom = zoom;
+                        updateChrDisplay();
+                    }
+                });
+            });
+        }
+        
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        }
+        
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showToast('画像ファイルを選択してください');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    sourceImage = img;
+                    elements.inputPreview.innerHTML = '';
+                    const previewImg = document.createElement('img');
+                    previewImg.src = e.target.result;
+                    elements.inputPreview.appendChild(previewImg);
+                    showToast('画像を読み込みました。変換ボタンを押してください');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function triggerConvert() {
+            if (!sourceImage || !elements.realtimePreview.checked) return;
+            clearTimeout(convertTimeout);
+            convertTimeout = setTimeout(() => convert(), 300);
+        }
+        
+        function updateAllValues() {
+            elements.cropPositionValue.textContent = elements.cropPosition.value + '%';
+            elements.paletteCountValue.textContent = elements.paletteCount.value;
+            elements.colorsPerPaletteValue.textContent = elements.colorsPerPalette.value;
+            elements.chrLimitValue.textContent = elements.chrLimit.value;
+            elements.similarityValue.textContent = elements.similarity.value;
+            elements.brightnessValue.textContent = elements.brightness.value;
+            elements.contrastValue.textContent = elements.contrast.value;
+            elements.saturationValue.textContent = elements.saturation.value;
+            elements.infoChrLimit.textContent = elements.chrLimit.value;
+            updatePaletteContainerUI();
+        }
+        
+        // Color utilities
+        function colorDistance(c1, c2) {
+            return Math.pow(c1.r - c2.r, 2) + Math.pow(c1.g - c2.g, 2) + Math.pow(c1.b - c2.b, 2);
+        }
+        
+        function findNearestNesColor(r, g, b) {
+            let minDist = Infinity;
+            let nearest = NES_PALETTE[0];
+            for (const color of NES_PALETTE) {
+                const dist = Math.pow(r - color.r, 2) + Math.pow(g - color.g, 2) + Math.pow(b - color.b, 2);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearest = color;
+                }
+            }
+            return nearest;
+        }
+        
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+        }
+        
+        // Main conversion
+        async function convert() {
+            if (!sourceImage) {
+                showToast('画像を選択してください');
+                return;
+            }
+            
+            elements.processingOverlay.classList.add('active');
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
+            try {
+                const settings = getSettings();
+                const dims = calculateDimensions(sourceImage.width, sourceImage.height, settings.outputMode, settings.cropPosition);
+                
+                // Update crop labels
+                if (dims.cropDirection === 'horizontal') {
+                    elements.cropLabelLeft.textContent = '左';
+                    elements.cropLabelRight.textContent = '右';
+                } else {
+                    elements.cropLabelLeft.textContent = '上';
+                    elements.cropLabelRight.textContent = '下';
+                }
+                
+                // Create working canvas
+                const workCanvas = document.createElement('canvas');
+                workCanvas.width = dims.width;
+                workCanvas.height = dims.height;
+                const workCtx = workCanvas.getContext('2d');
+                
+                // Draw with crop
+                workCtx.imageSmoothingEnabled = false;
+                workCtx.drawImage(sourceImage, dims.cropX, dims.cropY, dims.srcW, dims.srcH, 0, 0, dims.width, dims.height);
+                
+                let imageData = workCtx.getImageData(0, 0, dims.width, dims.height);
+                
+                // Apply color adjustments
+                imageData = applyColorAdjustments(imageData, settings);
+                
+                // Step 1: Find universal background color (most common)
+                const bgColor = findUniversalBackgroundColor(imageData);
+                
+                // Step 2: Analyze attribute blocks and generate palettes
+                const attrBlocksX = Math.ceil(dims.width / 16);
+                const attrBlocksY = Math.ceil(dims.height / 16);
+                const palettes = generateNesPalettes(imageData, dims.width, dims.height, bgColor, settings.paletteCount, settings.colorsPerPalette);
+                generatedPalettes = palettes;
+                
+                // Step 3: Assign palettes to attribute blocks
+                const attrMap = assignAttributeBlocks(imageData, dims.width, dims.height, palettes);
+                
+                // Step 4: Apply dithering and quantization per attribute block
+                imageData = applyNesDithering(imageData, dims.width, dims.height, palettes, attrMap, settings.ditherMode);
+                
+                // Step 5: CHR tile processing
+                const chrResult = processChrTiles(imageData, dims.width, dims.height, settings);
+                
+                // Update output
+                workCtx.putImageData(chrResult.imageData, 0, 0);
+                
+                elements.outputCanvas.width = dims.width;
+                elements.outputCanvas.height = dims.height;
+                const outputCtx = elements.outputCanvas.getContext('2d');
+                outputCtx.imageSmoothingEnabled = false;
+                outputCtx.drawImage(workCanvas, 0, 0);
+                
+                // Generate CHR image
+                generateChrImage(chrResult.tiles);
+                
+                // Update displays
+                updatePaletteDisplay(bgColor, palettes);
+                updateInfo(dims, chrResult, settings.chrLimit, settings.cropPosition, attrBlocksX, attrBlocksY);
+                updateOutputDisplay();
+                updateChrDisplay();
+                
+            } catch (error) {
+                console.error('Conversion error:', error);
+                showToast('変換エラーが発生しました');
+            }
+            
+            elements.processingOverlay.classList.remove('active');
+        }
+        
+        function calculateDimensions(srcWidth, srcHeight, mode, cropPosition = 50) {
+            let width, height;
+            
+            if (mode === 'nes') {
+                width = 256;
+                height = 240;
+            } else if (mode === 'qvga') {
+                width = 320;
+                height = 240;
+            } else if (mode === 'qvga2x') {
+                width = 640;
+                height = 480;
+            } else {
+                // auto mode
+                const aspect = srcWidth / srcHeight;
+                if (aspect >= 1) {
+                    height = 240;
+                    width = Math.round(height * aspect);
+                } else {
+                    width = 256;
+                    height = Math.round(width / aspect);
+                }
+                width = Math.floor(width / 8) * 8;
+                height = Math.floor(height / 8) * 8;
+                width = Math.max(8, width);
+                height = Math.max(8, height);
+            }
+            
+            const outputAspect = width / height;
+            const srcAspect = srcWidth / srcHeight;
+            const positionRatio = (cropPosition - 25) / 50;
+            
+            let srcW, srcH, cropX, cropY, cropDirection;
+            
+            if (srcAspect > outputAspect) {
+                srcH = srcHeight;
+                srcW = Math.round(srcHeight * outputAspect);
+                const maxCropX = srcWidth - srcW;
+                cropX = Math.floor(maxCropX * positionRatio);
+                cropY = 0;
+                cropDirection = 'horizontal';
+            } else {
+                srcW = srcWidth;
+                srcH = Math.round(srcWidth / outputAspect);
+                const maxCropY = srcHeight - srcH;
+                cropY = Math.floor(maxCropY * positionRatio);
+                cropX = 0;
+                cropDirection = 'vertical';
+            }
+            
+            return { width, height, cropX, cropY, srcW, srcH, cropDirection };
+        }
+        
+        function applyColorAdjustments(imageData, settings) {
+            const data = imageData.data;
+            const brightness = settings.brightness / 100;
+            const contrast = (settings.contrast + 100) / 100;
+            const saturation = (settings.saturation + 100) / 100;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i], g = data[i + 1], b = data[i + 2];
+                
+                r += brightness * 255;
+                g += brightness * 255;
+                b += brightness * 255;
+                
+                r = ((r / 255 - 0.5) * contrast + 0.5) * 255;
+                g = ((g / 255 - 0.5) * contrast + 0.5) * 255;
+                b = ((b / 255 - 0.5) * contrast + 0.5) * 255;
+                
+                const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                r = gray + saturation * (r - gray);
+                g = gray + saturation * (g - gray);
+                b = gray + saturation * (b - gray);
+                
+                data[i] = Math.max(0, Math.min(255, r));
+                data[i + 1] = Math.max(0, Math.min(255, g));
+                data[i + 2] = Math.max(0, Math.min(255, b));
+            }
+            return imageData;
+        }
+        
+        function findUniversalBackgroundColor(imageData) {
+            const colorCount = new Map();
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const nearest = findNearestNesColor(data[i], data[i + 1], data[i + 2]);
+                const key = `${nearest.r},${nearest.g},${nearest.b}`;
+                colorCount.set(key, (colorCount.get(key) || 0) + 1);
+            }
+            
+            let maxCount = 0;
+            let bgColor = NES_PALETTE[0];
+            for (const [key, count] of colorCount) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    const [r, g, b] = key.split(',').map(Number);
+                    bgColor = { r, g, b };
+                }
+            }
+            return bgColor;
+        }
+        
+        function generateNesPalettes(imageData, width, height, bgColor, paletteCount, colorsPerPalette) {
+            const attrBlocksX = Math.ceil(width / 16);
+            const attrBlocksY = Math.ceil(height / 16);
+            const data = imageData.data;
+            
+            // Collect colors per attribute block
+            const blockColors = [];
+            
+            for (let by = 0; by < attrBlocksY; by++) {
+                for (let bx = 0; bx < attrBlocksX; bx++) {
+                    const colors = new Map();
+                    for (let y = by * 16; y < Math.min((by + 1) * 16, height); y++) {
+                        for (let x = bx * 16; x < Math.min((bx + 1) * 16, width); x++) {
+                            const i = (y * width + x) * 4;
+                            const nearest = findNearestNesColor(data[i], data[i + 1], data[i + 2]);
+                            const key = `${nearest.r},${nearest.g},${nearest.b}`;
+                            colors.set(key, (colors.get(key) || 0) + 1);
+                        }
+                    }
+                    blockColors.push({ bx, by, colors });
+                }
+            }
+            
+            // Get all unique colors (excluding bg)
+            const allColors = new Set();
+            for (const block of blockColors) {
+                for (const key of block.colors.keys()) {
+                    if (key !== `${bgColor.r},${bgColor.g},${bgColor.b}`) {
+                        allColors.add(key);
+                    }
+                }
+            }
+            
+            const colorArray = Array.from(allColors).map(key => {
+                const [r, g, b] = key.split(',').map(Number);
+                return { r, g, b, key };
+            });
+            
+            // Initialize palettes
+            const palettes = [];
+            const colorsNeeded = colorsPerPalette - 1; // Minus bg color
+            
+            for (let i = 0; i < paletteCount; i++) {
+                const palette = [bgColor];
+                // Spread colors across palettes
+                for (let j = 0; j < colorsNeeded; j++) {
+                    const idx = Math.floor((i * colorsNeeded + j) * colorArray.length / (paletteCount * colorsNeeded)) % Math.max(1, colorArray.length);
+                    if (colorArray[idx]) {
+                        palette.push(colorArray[idx]);
+                    } else {
+                        palette.push(bgColor);
+                    }
+                }
+                palettes.push(palette);
+            }
+            
+            // Refine palettes based on block color distributions (k-means style)
+            for (let iter = 0; iter < 5; iter++) {
+                const paletteBlocks = Array.from({ length: paletteCount }, () => []);
+                
+                // Assign blocks to best palette
+                for (const block of blockColors) {
+                    let bestPalette = 0;
+                    let bestScore = Infinity;
+                    
+                    for (let p = 0; p < paletteCount; p++) {
+                        let score = 0;
+                        for (const [key, count] of block.colors) {
+                            const [r, g, b] = key.split(',').map(Number);
+                            let minDist = Infinity;
+                            for (const pc of palettes[p]) {
+                                const dist = colorDistance({ r, g, b }, pc);
+                                minDist = Math.min(minDist, dist);
+                            }
+                            score += minDist * count;
+                        }
+                        if (score < bestScore) {
+                            bestScore = score;
+                            bestPalette = p;
+                        }
+                    }
+                    paletteBlocks[bestPalette].push(block);
+                }
+                
+                // Update palette colors based on assigned blocks
+                for (let p = 0; p < paletteCount; p++) {
+                    if (paletteBlocks[p].length === 0) continue;
+                    
+                    const colorCounts = new Map();
+                    for (const block of paletteBlocks[p]) {
+                        for (const [key, count] of block.colors) {
+                            if (key !== `${bgColor.r},${bgColor.g},${bgColor.b}`) {
+                                colorCounts.set(key, (colorCounts.get(key) || 0) + count);
+                            }
+                        }
+                    }
+                    
+                    // Sort by count and pick top colors
+                    const sorted = Array.from(colorCounts.entries())
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, colorsNeeded)
+                        .map(([key]) => {
+                            const [r, g, b] = key.split(',').map(Number);
+                            return { r, g, b };
+                        });
+                    
+                    palettes[p] = [bgColor, ...sorted];
+                    while (palettes[p].length < colorsPerPalette) {
+                        palettes[p].push(bgColor);
+                    }
+                }
+            }
+            
+            return palettes;
+        }
+        
+        function assignAttributeBlocks(imageData, width, height, palettes) {
+            const paletteCount = palettes.length;
+            const attrBlocksX = Math.ceil(width / 16);
+            const attrBlocksY = Math.ceil(height / 16);
+            const data = imageData.data;
+            const attrMap = [];
+            
+            for (let by = 0; by < attrBlocksY; by++) {
+                const row = [];
+                for (let bx = 0; bx < attrBlocksX; bx++) {
+                    let bestPalette = 0;
+                    let bestScore = Infinity;
+                    
+                    for (let p = 0; p < paletteCount; p++) {
+                        let score = 0;
+                        for (let y = by * 16; y < Math.min((by + 1) * 16, height); y++) {
+                            for (let x = bx * 16; x < Math.min((bx + 1) * 16, width); x++) {
+                                const i = (y * width + x) * 4;
+                                const r = data[i], g = data[i + 1], b = data[i + 2];
+                                let minDist = Infinity;
+                                for (const pc of palettes[p]) {
+                                    const dist = colorDistance({ r, g, b }, pc);
+                                    minDist = Math.min(minDist, dist);
+                                }
+                                score += minDist;
+                            }
+                        }
+                        if (score < bestScore) {
+                            bestScore = score;
+                            bestPalette = p;
+                        }
+                    }
+                    row.push(bestPalette);
+                }
+                attrMap.push(row);
+            }
+            return attrMap;
+        }
+        
+        function applyNesDithering(imageData, width, height, palettes, attrMap, ditherMode) {
+            const data = imageData.data;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const i = (y * width + x) * 4;
+                    const bx = Math.floor(x / 16);
+                    const by = Math.floor(y / 16);
+                    const palette = palettes[attrMap[by][bx]];
+                    
+                    let r = data[i], g = data[i + 1], b = data[i + 2];
+                    
+                    // Apply dither threshold
+                    let threshold = 0;
+                    if (ditherMode === 'checker') {
+                        threshold = ((x + y) % 2) * 64 - 32;
+                    } else if (ditherMode === 'bayer2') {
+                        threshold = (BAYER2[y % 2][x % 2] / 4 - 0.5) * 64;
+                    } else if (ditherMode === 'bayer4') {
+                        threshold = (BAYER4[y % 4][x % 4] / 16 - 0.5) * 64;
+                    }
+                    
+                    r += threshold;
+                    g += threshold;
+                    b += threshold;
+                    
+                    // Find nearest color in palette
+                    let nearest = palette[0];
+                    let minDist = Infinity;
+                    for (const pc of palette) {
+                        const dist = colorDistance({ r, g, b }, pc);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            nearest = pc;
+                        }
+                    }
+                    
+                    data[i] = nearest.r;
+                    data[i + 1] = nearest.g;
+                    data[i + 2] = nearest.b;
+                }
+            }
+            
+            return imageData;
+        }
+        
+        function processChrTiles(imageData, width, height, settings) {
+            const data = imageData.data;
+            const tilesX = Math.ceil(width / 8);
+            const tilesY = Math.ceil(height / 8);
+            const tiles = [];
+            const threshold = settings.similarity * 64;
+            
+            // Extract all tiles
+            const allTiles = [];
+            for (let ty = 0; ty < tilesY; ty++) {
+                for (let tx = 0; tx < tilesX; tx++) {
+                    const tile = extractTile(data, width, height, tx * 8, ty * 8);
+                    allTiles.push({ x: tx, y: ty, data: tile });
+                }
+            }
+            
+            // Find unique tiles
+            const uniqueTiles = [];
+            const tileMapping = new Array(allTiles.length);
+            
+            for (let i = 0; i < allTiles.length; i++) {
+                let foundMatch = -1;
+                for (let j = 0; j < uniqueTiles.length; j++) {
+                    if (tilesAreSimilar(allTiles[i].data, uniqueTiles[j].data, threshold)) {
+                        foundMatch = j;
+                        break;
+                    }
+                }
+                if (foundMatch >= 0) {
+                    tileMapping[i] = foundMatch;
+                } else {
+                    tileMapping[i] = uniqueTiles.length;
+                    uniqueTiles.push(allTiles[i]);
+                }
+            }
+            
+            // Merge if over limit
+            while (uniqueTiles.length > settings.chrLimit) {
+                let minDiff = Infinity;
+                let mergeA = 0, mergeB = 1;
+                
+                for (let i = 0; i < uniqueTiles.length; i++) {
+                    for (let j = i + 1; j < uniqueTiles.length; j++) {
+                        const diff = tileDifference(uniqueTiles[i].data, uniqueTiles[j].data);
+                        if (diff < minDiff) {
+                            minDiff = diff;
+                            mergeA = i;
+                            mergeB = j;
+                        }
+                    }
+                }
+                
+                for (let i = 0; i < tileMapping.length; i++) {
+                    if (tileMapping[i] === mergeB) {
+                        tileMapping[i] = mergeA;
+                    } else if (tileMapping[i] > mergeB) {
+                        tileMapping[i]--;
+                    }
+                }
+                uniqueTiles.splice(mergeB, 1);
+            }
+            
+            // Rebuild image
+            const newData = new Uint8ClampedArray(data.length);
+            for (let i = 0; i < allTiles.length; i++) {
+                const tileIndex = tileMapping[i];
+                const tileData = uniqueTiles[tileIndex].data;
+                writeTile(newData, width, height, allTiles[i].x * 8, allTiles[i].y * 8, tileData);
+            }
+            
+            return {
+                imageData: new ImageData(newData, width, height),
+                tiles: uniqueTiles.map(t => t.data),
+                tileCount: uniqueTiles.length
+            };
+        }
+        
+        function extractTile(data, width, height, startX, startY) {
+            const tile = new Uint8ClampedArray(8 * 8 * 4);
+            for (let y = 0; y < 8; y++) {
+                for (let x = 0; x < 8; x++) {
+                    const srcX = Math.min(startX + x, width - 1);
+                    const srcY = Math.min(startY + y, height - 1);
+                    const srcI = (srcY * width + srcX) * 4;
+                    const dstI = (y * 8 + x) * 4;
+                    tile[dstI] = data[srcI];
+                    tile[dstI + 1] = data[srcI + 1];
+                    tile[dstI + 2] = data[srcI + 2];
+                    tile[dstI + 3] = 255;
+                }
+            }
+            return tile;
+        }
+        
+        function writeTile(data, width, height, startX, startY, tile) {
+            for (let y = 0; y < 8; y++) {
+                for (let x = 0; x < 8; x++) {
+                    const dstX = startX + x;
+                    const dstY = startY + y;
+                    if (dstX < width && dstY < height) {
+                        const dstI = (dstY * width + dstX) * 4;
+                        const srcI = (y * 8 + x) * 4;
+                        data[dstI] = tile[srcI];
+                        data[dstI + 1] = tile[srcI + 1];
+                        data[dstI + 2] = tile[srcI + 2];
+                        data[dstI + 3] = 255;
+                    }
+                }
+            }
+        }
+        
+        function tilesAreSimilar(tile1, tile2, threshold) {
+            return tileDifference(tile1, tile2) <= threshold;
+        }
+        
+        function tileDifference(tile1, tile2) {
+            let diff = 0;
+            for (let i = 0; i < tile1.length; i += 4) {
+                diff += Math.abs(tile1[i] - tile2[i]);
+                diff += Math.abs(tile1[i + 1] - tile2[i + 1]);
+                diff += Math.abs(tile1[i + 2] - tile2[i + 2]);
+            }
+            return diff;
+        }
+        
+        function generateChrImage(tiles) {
+            if (tiles.length === 0) {
+                elements.chrCanvas.width = 8;
+                elements.chrCanvas.height = 8;
+                return;
+            }
+            
+            const tilesPerRow = 16;
+            const rows = Math.ceil(tiles.length / tilesPerRow);
+            const cols = Math.min(tiles.length, tilesPerRow);
+            
+            elements.chrCanvas.width = cols * 8;
+            elements.chrCanvas.height = rows * 8;
+            
+            const ctx = elements.chrCanvas.getContext('2d');
+            const imageData = ctx.createImageData(cols * 8, rows * 8);
+            
+            for (let i = 0; i < tiles.length; i++) {
+                const col = i % tilesPerRow;
+                const row = Math.floor(i / tilesPerRow);
+                writeTile(imageData.data, cols * 8, rows * 8, col * 8, row * 8, tiles[i]);
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+        }
+        
+        function updatePaletteDisplay(bgColor, palettes) {
+            elements.bgColor.style.background = rgbToHex(bgColor.r, bgColor.g, bgColor.b);
+            
+            const showCount = Math.min(palettes.length, 8);
+            
+            for (let i = 0; i < showCount; i++) {
+                const container = document.getElementById(`palette${i}`);
+                if (!container) continue;
+                
+                const swatches = container.querySelectorAll('.palette-swatch');
+                for (let j = 0; j < swatches.length; j++) {
+                    const color = palettes[i][j] || bgColor;
+                    swatches[j].style.background = rgbToHex(color.r, color.g, color.b);
+                }
+            }
+        }
+        
+        function updateOutputDisplay() {
+            const canvas = elements.outputCanvas;
+            canvas.style.width = (canvas.width * outputZoom) + 'px';
+            canvas.style.height = (canvas.height * outputZoom) + 'px';
+        }
+        
+        function updateChrDisplay() {
+            const canvas = elements.chrCanvas;
+            canvas.style.width = (canvas.width * chrZoom) + 'px';
+            canvas.style.height = (canvas.height * chrZoom) + 'px';
+        }
+        
+        function updateInfo(dims, chrResult, limit, cropPosition, attrX, attrY) {
+            elements.infoResolution.textContent = `${dims.width} × ${dims.height}`;
+            elements.infoTiles.textContent = `${Math.ceil(dims.width / 8)} × ${Math.ceil(dims.height / 8)}`;
+            elements.infoChrUsed.textContent = chrResult.tileCount;
+            elements.infoAttrBlocks.textContent = `${attrX} × ${attrY}`;
+            
+            if (dims.cropX > 0 || dims.cropY > 0) {
+                const direction = dims.cropDirection === 'horizontal' ? '左右' : '上下';
+                elements.infoCrop.textContent = `${direction} ${cropPosition}%`;
+            } else {
+                elements.infoCrop.textContent = 'なし';
+            }
+            
+            const percentage = Math.round((chrResult.tileCount / limit) * 100);
+            elements.chrPercentage.textContent = `${percentage}%`;
+            elements.chrBarFill.style.width = `${Math.min(100, percentage)}%`;
+            
+            elements.chrBarFill.classList.remove('warning', 'danger');
+            if (percentage >= 100) {
+                elements.chrBarFill.classList.add('danger');
+            } else if (percentage >= 80) {
+                elements.chrBarFill.classList.add('warning');
+            }
+        }
+        
+        function getSettings() {
+            return {
+                outputMode: elements.outputMode.value,
+                cropPosition: parseInt(elements.cropPosition.value),
+                ditherMode: elements.ditherMode.value,
+                paletteCount: parseInt(elements.paletteCount.value),
+                colorsPerPalette: parseInt(elements.colorsPerPalette.value),
+                chrLimit: parseInt(elements.chrLimit.value),
+                similarity: parseInt(elements.similarity.value),
+                brightness: parseInt(elements.brightness.value),
+                contrast: parseInt(elements.contrast.value),
+                saturation: parseInt(elements.saturation.value),
+                realtimePreview: elements.realtimePreview.checked
+            };
+        }
+        
+        function saveSettings() {
+            const settings = getSettings();
+            document.cookie = `nesbg_settings=${JSON.stringify(settings)}; max-age=31536000; path=/`;
+            showToast('設定を保存しました');
+        }
+        
+        function loadSettings() {
+            const match = document.cookie.match(/nesbg_settings=([^;]+)/);
+            if (match) {
+                try {
+                    const settings = JSON.parse(match[1]);
+                    applySettings(settings);
+                } catch (e) {
+                    console.error('Failed to load settings:', e);
+                }
+            }
+        }
+        
+        function applySettings(settings) {
+            elements.outputMode.value = settings.outputMode || defaultSettings.outputMode;
+            elements.cropPosition.value = settings.cropPosition || defaultSettings.cropPosition;
+            elements.ditherMode.value = settings.ditherMode || defaultSettings.ditherMode;
+            elements.paletteCount.value = settings.paletteCount || defaultSettings.paletteCount;
+            elements.colorsPerPalette.value = settings.colorsPerPalette || defaultSettings.colorsPerPalette;
+            elements.chrLimit.value = settings.chrLimit || defaultSettings.chrLimit;
+            elements.similarity.value = settings.similarity || defaultSettings.similarity;
+            elements.brightness.value = settings.brightness || defaultSettings.brightness;
+            elements.contrast.value = settings.contrast || defaultSettings.contrast;
+            elements.saturation.value = settings.saturation || defaultSettings.saturation;
+            elements.realtimePreview.checked = settings.realtimePreview !== undefined ? settings.realtimePreview : defaultSettings.realtimePreview;
+            updateAllValues();
+        }
+        
+        function resetSettings() {
+            applySettings(defaultSettings);
+            showToast('設定をリセットしました');
+            if (sourceImage) convert();
+        }
+        
+        function downloadCanvas(canvas, filename) {
+            const dataUrl = canvas.toDataURL('image/png');
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            
+            if (isIOS) {
+                const newTab = window.open();
+                if (newTab) {
+                    newTab.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta name="viewport" content="width=device-width, initial-scale=1">
+                            <title>${filename}</title>
+                            <style>
+                                body { margin: 0; padding: 20px; background: #1a1a2e; color: #eee; font-family: -apple-system, sans-serif; text-align: center; }
+                                img { image-rendering: pixelated; border: 2px solid #333; max-width: 100%; margin-top: 10px; }
+                                .hint { background: #e94560; padding: 15px; border-radius: 8px; margin: 10px; font-size: 16px; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="hint">📱 画像を長押し →「写真に追加」で保存</div>
+                            <img src="${dataUrl}" />
+                        </body>
+                        </html>
+                    `);
+                    newTab.document.close();
+                    showToast('新しいタブで開きました');
+                } else {
+                    window.location.href = dataUrl;
+                }
+            } else {
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('ダウンロードを開始しました');
+            }
+        }
+        
+        async function copyCanvasToClipboard(canvas) {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            
+            if (isIOS) {
+                openImageInNewTab(canvas, '画像を長押しでコピーまたは保存');
+                return;
+            }
+            
+            try {
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                showToast('クリップボードにコピーしました');
+                return;
+            } catch (e) {
+                console.log('Clipboard API not available, using fallback');
+            }
+            
+            openImageInNewTab(canvas, '画像を右クリック →「画像をコピー」');
+        }
+        
+        function openImageInNewTab(canvas, message) {
+            try {
+                const dataUrl = canvas.toDataURL('image/png');
+                const newTab = window.open();
+                if (newTab) {
+                    newTab.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta name="viewport" content="width=device-width, initial-scale=1">
+                            <title>画像</title>
+                            <style>
+                                body { margin: 0; padding: 20px; background: #1a1a2e; color: #eee; font-family: -apple-system, sans-serif; text-align: center; }
+                                img { image-rendering: pixelated; border: 2px solid #333; max-width: 100%; margin-top: 10px; }
+                                .hint { background: #e94560; padding: 15px; border-radius: 8px; margin: 10px; font-size: 16px; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="hint">📋 ${message}</div>
+                            <img src="${dataUrl}" />
+                        </body>
+                        </html>
+                    `);
+                    newTab.document.close();
+                    showToast('新しいタブで開きました');
+                } else {
+                    showToast('ポップアップがブロックされました');
+                }
+            } catch (e) {
+                console.error('Failed to open image:', e);
+                showToast('エラーが発生しました');
+            }
+        }
+        
+        function showToast(message) {
+            elements.toast.textContent = message;
+            elements.toast.classList.add('show');
+            setTimeout(() => elements.toast.classList.remove('show'), 2000);
+        }
+        
+        init();
+    </script>
+</body>
+</html>

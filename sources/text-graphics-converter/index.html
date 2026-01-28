@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>テキストグラフィックコンバーター</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #2a2a2a;
+            --accent: #00ff00;
+            --accent-hover: #44ff44;
+            --text-primary: #eee;
+            --text-secondary: #aaa;
+            --border: #333;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Meiryo', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #0a0a0a, #1a2a1a, #0a0a0a);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: var(--accent);
+            text-shadow: 0 0 20px var(--accent), 0 0 40px #008800;
+            font-family: 'VT323', monospace;
+            letter-spacing: 2px;
+        }
+        
+        header p {
+            color: #88ff88;
+            font-size: 0.9em;
+            font-family: 'VT323', monospace;
+        }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 1000px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+        
+        .panel h2 {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            color: var(--accent);
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+        }
+        
+        .control-group .value {
+            float: right;
+            color: var(--accent);
+            font-weight: bold;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--bg-tertiary);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--accent-hover);
+        }
+        
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: black;
+            width: 100%;
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+        
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 0.85em;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn-group .btn {
+            flex: 1;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 40px 20px;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .file-input-label:hover {
+            border-color: var(--accent);
+            background: rgba(0, 255, 0, 0.1);
+        }
+        
+        .file-input-label.dragover {
+            border-color: var(--accent);
+            background: rgba(0, 255, 0, 0.2);
+        }
+        
+        .preview-area {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .preview-area img {
+            max-width: 100%;
+            max-height: 200px;
+            image-rendering: pixelated;
+        }
+        
+        .preview-area .placeholder {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+        
+        .output-panel {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+        
+        .output-panel h3 {
+            font-size: 1em;
+            margin-bottom: 15px;
+            color: var(--accent);
+        }
+        
+        .output-canvas-wrapper {
+            background: #000;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 15px;
+            overflow: auto;
+        }
+        
+        .output-canvas-wrapper canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        .zoom-controls {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+            justify-content: center;
+        }
+        
+        .zoom-btn {
+            padding: 5px 12px;
+            font-size: 0.8em;
+            border-radius: 4px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            cursor: pointer;
+        }
+        
+        .zoom-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: black;
+        }
+        
+        .info-panel {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .info-panel h4 {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            color: var(--text-secondary);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+        }
+        
+        .info-item .label {
+            color: var(--text-secondary);
+        }
+        
+        .info-item .value {
+            color: var(--accent);
+            font-weight: bold;
+        }
+        
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 15px 10px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        
+        .mode-btn:hover {
+            border-color: var(--accent);
+        }
+        
+        .mode-btn.active {
+            border-color: var(--accent);
+            background: rgba(0, 255, 0, 0.2);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+        
+        .mode-btn .mode-icon {
+            font-size: 1.5em;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .mode-btn .mode-name {
+            font-size: 0.85em;
+        }
+        
+        .charset-preview {
+            font-family: 'VT323', monospace;
+            font-size: 16px;
+            background: #000;
+            color: var(--accent);
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            letter-spacing: 2px;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        .palette-display {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .palette-swatch {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            border: 1px solid #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+        
+        .monochrome-palette {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .mono-swatch {
+            width: 36px;
+            height: 36px;
+            border-radius: 4px;
+            border: 2px solid #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .mono-swatch:hover {
+            transform: scale(1.1);
+            border-color: #888;
+        }
+        
+        .mono-swatch.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+            transform: scale(1.1);
+        }
+        
+        .section-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 20px 0;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+        }
+        
+        .text-output {
+            margin-top: 20px;
+        }
+        
+        .text-output textarea {
+            width: 100%;
+            height: 200px;
+            font-family: 'VT323', monospace;
+            font-size: 12px;
+            background: #000;
+            color: var(--accent);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            resize: vertical;
+            line-height: 1;
+        }
+        
+        .processing-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .processing-overlay.active {
+            display: flex;
+        }
+        
+        .processing-content {
+            text-align: center;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: var(--accent);
+            color: black;
+            border-radius: 8px;
+            font-weight: 600;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1001;
+        }
+        
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .settings-footer {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+        
+        .retro-info {
+            font-size: 0.75em;
+            color: #88ff88;
+            margin-top: 10px;
+            padding: 8px;
+            background: rgba(0, 255, 0, 0.1);
+            border-radius: 4px;
+            border: 1px solid #224422;
+            font-family: 'VT323', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📺 TEXT GRAPHICS CONVERTER</h1>
+            <p>- 80×25 Character Display / Digital RGB 8 Colors -</p>
+        </header>
+        
+        <div class="main-layout">
+            <!-- Left Panel: Controls -->
+            <div class="controls-column">
+                <div class="panel">
+                    <h2>📁 画像入力</h2>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="imageInput" accept="image/*">
+                        <div class="file-input-label" id="dropZone">
+                            <span>📷 クリックまたはドラッグ&ドロップ</span>
+                        </div>
+                    </div>
+                    <div class="preview-area" id="inputPreview">
+                        <span class="placeholder">画像を選択してください</span>
+                    </div>
+                    
+                    <button class="btn btn-primary" id="convertBtnTop" style="margin-top: 15px;">
+                        🔄 変換実行
+                    </button>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <h2>⚙️ 変換設定</h2>
+                    
+                    <div class="control-group">
+                        <label>出力サイズモード</label>
+                        <select id="outputMode">
+                            <option value="x1turbo" selected>X1turbo（640×400 / 80×25）</option>
+                            <option value="x1turbo2x">X1turbo ×2（1280×800 / 80×25）</option>
+                            <option value="x1turbo4x">X1turbo ×4（2560×1600 / 80×25）</option>
+                            <option value="vga">VGA（640×480 / 80×30）</option>
+                            <option value="vga2x">VGA ×2（1280×960 / 80×30）</option>
+                            <option value="vga4x">VGA ×4（2560×1920 / 80×30）</option>
+                            <option value="auto">オート（アスペクト比維持）</option>
+                            <option value="auto2x">オート ×2</option>
+                            <option value="auto4x">オート ×4</option>
+                            <option value="auto8x">オート ×8</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            トリミング位置
+                            <span class="value" id="cropPositionValue">50%</span>
+                        </label>
+                        <input type="range" id="cropPosition" min="25" max="75" value="50">
+                        <div class="range-labels">
+                            <span id="cropLabelLeft">上/左</span>
+                            <span>中央</span>
+                            <span id="cropLabelRight">下/右</span>
+                        </div>
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <h2>📺 モード選択</h2>
+                    
+                    <div class="mode-selector">
+                        <button class="mode-btn active" data-mode="text" id="modeText">
+                            <span class="mode-icon">Aa</span>
+                            <span class="mode-name">テキストキャラ</span>
+                        </button>
+                        <button class="mode-btn" data-mode="pcg" id="modePcg">
+                            <span class="mode-icon">▚</span>
+                            <span class="mode-name">PCGセミグラ</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Text Mode Settings -->
+                    <div id="textSettings">
+                        <div class="control-group">
+                            <label>文字セット</label>
+                            <select id="charset">
+                                <option value="standard" selected>標準（ASCII濃淡）</option>
+                                <option value="block">ブロック文字</option>
+                                <option value="detailed">詳細（記号多め）</option>
+                            </select>
+                        </div>
+                        <div class="charset-preview" id="charsetPreview">
+                            .:-=+*#%@
+                        </div>
+                    </div>
+                    
+                    <!-- PCG Mode Settings -->
+                    <div id="pcgSettings" style="display: none;">
+                        <div class="control-group">
+                            <label>
+                                ON/OFF閾値
+                                <span class="value" id="thresholdValue">50%</span>
+                            </label>
+                            <input type="range" id="threshold" min="10" max="90" value="50">
+                            <div class="range-labels">
+                                <span>暗い優先</span>
+                                <span>明るい優先</span>
+                            </div>
+                        </div>
+                        <div class="retro-info">
+                            1キャラ = 2×2ブロック（各4×8ピクセル）<br>
+                            実効解像度: 160×50ブロック
+                        </div>
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <h2 id="paletteTitle">🎨 カラーパレット（デジタルRGB 8色）</h2>
+                    
+                    <div class="control-group">
+                        <label>パレット選択</label>
+                        <select id="paletteSelect">
+                            <option value="digital8" selected>デジタルRGB 8色</option>
+                            <option value="msx">MSX 15色（TMS9918）</option>
+                            <option value="famicom">ファミコン 54色</option>
+                            <option value="monochrome">モノクロ（単色）</option>
+                        </select>
+                    </div>
+                    
+                    <div class="palette-display" id="paletteDisplay"></div>
+                    
+                    <!-- Monochrome color picker (MSX 16 colors) -->
+                    <div id="monochromeSettings" style="display: none;">
+                        <div class="control-group">
+                            <label>単色カラー選択（MSX 16色）</label>
+                            <div class="monochrome-palette" id="monochromePalette"></div>
+                        </div>
+                        <div class="retro-info">
+                            💡 輝度のみで表現するクラシックなモノクロ表示
+                        </div>
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <h2>🔲 カラー判定設定</h2>
+                    
+                    <div class="control-group">
+                        <label>判定エリア</label>
+                        <div class="mode-selector" style="margin-top: 8px;">
+                            <button class="mode-btn active" data-colorblock="1x1" id="colorBlock1x1">
+                                <span class="mode-name">1×1</span>
+                            </button>
+                            <button class="mode-btn" data-colorblock="2x1" id="colorBlock2x1">
+                                <span class="mode-name">2×1</span>
+                            </button>
+                            <button class="mode-btn" data-colorblock="2x2" id="colorBlock2x2">
+                                <span class="mode-name">2×2</span>
+                            </button>
+                        </div>
+                        <div class="retro-info">
+                            1×1: 各キャラ独立判定<br>
+                            2×1: 横2キャラで2色共有（色安定）<br>
+                            2×2: 2×2キャラで2色共有（最も安定）
+                        </div>
+                    </div>
+                    
+                    <div id="ditherPatternSettings" style="display: none;">
+                        <div class="control-group">
+                            <label>2色配置パターン</label>
+                            <div class="mode-selector" style="margin-top: 8px;">
+                                <button class="mode-btn active" data-ditherpattern="stripe" id="ditherStripe">
+                                    <span class="mode-name">縦縞</span>
+                                </button>
+                                <button class="mode-btn" data-ditherpattern="checker" id="ditherChecker">
+                                    <span class="mode-name">市松</span>
+                                </button>
+                                <button class="mode-btn" data-ditherpattern="horizontal" id="ditherHorizontal">
+                                    <span class="mode-name">横縞</span>
+                                </button>
+                            </div>
+                            <div class="retro-info" id="ditherPatternInfo">
+                                縦縞: 奇数列と偶数列で色分け
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <h2>🎨 色調整（減色前）</h2>
+                    
+                    <div class="control-group">
+                        <label>
+                            明度
+                            <span class="value" id="brightnessValue">0</span>
+                        </label>
+                        <input type="range" id="brightness" min="-100" max="100" value="0">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            コントラスト
+                            <span class="value" id="contrastValue">0</span>
+                        </label>
+                        <input type="range" id="contrast" min="-100" max="100" value="0">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>
+                            彩度
+                            <span class="value" id="saturationValue">0</span>
+                        </label>
+                        <input type="range" id="saturation" min="-100" max="100" value="0">
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <div class="control-group">
+                        <label>フォント（Canvas描画用）</label>
+                        <select id="fontSelect">
+                            <option value="VT323" selected>VT323（ターミナル風）</option>
+                            <option value="Press Start 2P">Press Start 2P（ファミコン風）</option>
+                        </select>
+                    </div>
+                    
+                    <div class="section-divider"></div>
+                    
+                    <button class="btn btn-primary" id="convertBtn">
+                        🔄 変換実行
+                    </button>
+                    
+                    <div class="settings-footer">
+                        <div class="btn-group">
+                            <button class="btn btn-secondary btn-small" id="saveSettings">
+                                💾 設定保存
+                            </button>
+                            <button class="btn btn-secondary btn-small" id="resetSettings">
+                                🔄 リセット
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Panel: Output -->
+            <div class="output-column">
+                <div class="output-panel">
+                    <h3>📺 出力画像</h3>
+                    <div class="zoom-controls">
+                        <button class="zoom-btn" data-zoom="0.25">0.25x</button>
+                        <button class="zoom-btn" data-zoom="0.5">0.5x</button>
+                        <button class="zoom-btn active" data-zoom="1">1x</button>
+                        <button class="zoom-btn" data-zoom="2">2x</button>
+                    </div>
+                    <div class="output-canvas-wrapper" id="outputWrapper">
+                        <canvas id="outputCanvas"></canvas>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary btn-small" id="downloadOutput">
+                            💾 PNG保存
+                        </button>
+                        <button class="btn btn-secondary btn-small" id="copyOutput">
+                            📋 コピー
+                        </button>
+                    </div>
+                    
+                    <!-- Text Output -->
+                    <div class="text-output">
+                        <h3>📝 テキストデータ（おまけ）</h3>
+                        <textarea id="textOutput" readonly placeholder="変換後のテキストデータがここに表示されます"></textarea>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary btn-small" id="copyText">
+                                📋 テキストコピー
+                            </button>
+                        </div>
+                        <div class="retro-info">
+                            ※フォントによって見た目が変わります
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Info Panel -->
+                <div class="info-panel">
+                    <h4>📊 出力情報</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="label">ピクセルサイズ:</span>
+                            <span class="value" id="infoPixels">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">キャラ数:</span>
+                            <span class="value" id="infoChars">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">モード:</span>
+                            <span class="value" id="infoMode">テキスト</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">カラー:</span>
+                            <span class="value">8色</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Processing Overlay -->
+    <div class="processing-overlay" id="processingOverlay">
+        <div class="processing-content">
+            <div class="spinner"></div>
+            <p>変換処理中...</p>
+        </div>
+    </div>
+    
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        // Digital RGB 8 colors
+        // Palette definitions
+        const PALETTE_DIGITAL8 = [
+            { r: 0,   g: 0,   b: 0,   name: '黒' },   // 0
+            { r: 0,   g: 0,   b: 255, name: '青' },   // 1
+            { r: 255, g: 0,   b: 0,   name: '赤' },   // 2
+            { r: 255, g: 0,   b: 255, name: '紫' },   // 3
+            { r: 0,   g: 255, b: 0,   name: '緑' },   // 4
+            { r: 0,   g: 255, b: 255, name: '水' },   // 5
+            { r: 255, g: 255, b: 0,   name: '黄' },   // 6
+            { r: 255, g: 255, b: 255, name: '白' }    // 7
+        ];
+        
+        // MSX TMS9918 palette (15 colors, excluding transparent)
+        const PALETTE_MSX = [
+            { r: 0,   g: 0,   b: 0,   name: '黒' },        // 1
+            { r: 62,  g: 184, b: 73,  name: '中緑' },      // 2
+            { r: 116, g: 208, b: 125, name: '明緑' },      // 3
+            { r: 89,  g: 85,  b: 224, name: '暗青' },      // 4
+            { r: 128, g: 118, b: 241, name: '明青' },      // 5
+            { r: 185, g: 94,  b: 81,  name: '暗赤' },      // 6
+            { r: 101, g: 219, b: 239, name: '水色' },      // 7
+            { r: 219, g: 101, b: 89,  name: '中赤' },      // 8
+            { r: 255, g: 137, b: 125, name: '明赤' },      // 9
+            { r: 204, g: 195, b: 94,  name: '暗黄' },      // 10
+            { r: 222, g: 208, b: 135, name: '明黄' },      // 11
+            { r: 58,  g: 162, b: 65,  name: '暗緑' },      // 12
+            { r: 183, g: 102, b: 181, name: 'マゼンタ' },  // 13
+            { r: 204, g: 204, b: 204, name: '灰' },        // 14
+            { r: 255, g: 255, b: 255, name: '白' }         // 15
+        ];
+        
+        // MSX TMS9918 full 16 colors (for monochrome color selection)
+        const PALETTE_MSX_16 = [
+            { r: 0,   g: 0,   b: 0,   name: '透明/黒' },   // 0 (transparent, treat as black)
+            { r: 0,   g: 0,   b: 0,   name: '黒' },        // 1
+            { r: 62,  g: 184, b: 73,  name: '中緑' },      // 2
+            { r: 116, g: 208, b: 125, name: '明緑' },      // 3
+            { r: 89,  g: 85,  b: 224, name: '暗青' },      // 4
+            { r: 128, g: 118, b: 241, name: '明青' },      // 5
+            { r: 185, g: 94,  b: 81,  name: '暗赤' },      // 6
+            { r: 101, g: 219, b: 239, name: '水色' },      // 7
+            { r: 219, g: 101, b: 89,  name: '中赤' },      // 8
+            { r: 255, g: 137, b: 125, name: '明赤' },      // 9
+            { r: 204, g: 195, b: 94,  name: '暗黄' },      // 10
+            { r: 222, g: 208, b: 135, name: '明黄' },      // 11
+            { r: 58,  g: 162, b: 65,  name: '暗緑' },      // 12
+            { r: 183, g: 102, b: 181, name: 'マゼンタ' },  // 13
+            { r: 204, g: 204, b: 204, name: '灰' },        // 14
+            { r: 255, g: 255, b: 255, name: '白' }         // 15
+        ];
+        
+        // Famicom/NES palette (54 colors)
+        const PALETTE_FAMICOM = [
+            { r: 84,  g: 84,  b: 84,  name: '灰1' },
+            { r: 0,   g: 30,  b: 116, name: '暗青' },
+            { r: 8,   g: 16,  b: 144, name: '青紫' },
+            { r: 48,  g: 0,   b: 136, name: '紫' },
+            { r: 68,  g: 0,   b: 100, name: '暗紫' },
+            { r: 92,  g: 0,   b: 48,  name: '暗赤紫' },
+            { r: 84,  g: 4,   b: 0,   name: '暗赤' },
+            { r: 60,  g: 24,  b: 0,   name: '茶' },
+            { r: 32,  g: 42,  b: 0,   name: '暗黄緑' },
+            { r: 8,   g: 58,  b: 0,   name: '暗緑' },
+            { r: 0,   g: 64,  b: 0,   name: '緑' },
+            { r: 0,   g: 60,  b: 0,   name: '暗緑2' },
+            { r: 0,   g: 50,  b: 60,  name: '暗青緑' },
+            { r: 0,   g: 0,   b: 0,   name: '黒' },
+            { r: 152, g: 150, b: 152, name: '灰2' },
+            { r: 8,   g: 76,  b: 196, name: '青' },
+            { r: 48,  g: 50,  b: 236, name: '明青紫' },
+            { r: 92,  g: 30,  b: 228, name: '明紫' },
+            { r: 136, g: 20,  b: 176, name: 'マゼンタ' },
+            { r: 160, g: 20,  b: 100, name: '赤紫' },
+            { r: 152, g: 34,  b: 32,  name: '赤' },
+            { r: 120, g: 60,  b: 0,   name: 'オレンジ' },
+            { r: 84,  g: 90,  b: 0,   name: '黄緑' },
+            { r: 40,  g: 114, b: 0,   name: '明緑' },
+            { r: 8,   g: 124, b: 0,   name: '緑2' },
+            { r: 0,   g: 118, b: 40,  name: '青緑' },
+            { r: 0,   g: 102, b: 120, name: 'シアン' },
+            { r: 236, g: 238, b: 236, name: '明灰' },
+            { r: 76,  g: 154, b: 236, name: '明青' },
+            { r: 120, g: 124, b: 236, name: '明青紫2' },
+            { r: 176, g: 98,  b: 236, name: '明紫2' },
+            { r: 228, g: 84,  b: 236, name: '明マゼンタ' },
+            { r: 236, g: 88,  b: 180, name: 'ピンク' },
+            { r: 236, g: 106, b: 100, name: '明赤' },
+            { r: 212, g: 136, b: 32,  name: '明オレンジ' },
+            { r: 160, g: 170, b: 0,   name: '黄' },
+            { r: 116, g: 196, b: 0,   name: '明黄緑' },
+            { r: 76,  g: 208, b: 32,  name: '明緑2' },
+            { r: 56,  g: 204, b: 108, name: '明青緑' },
+            { r: 56,  g: 180, b: 204, name: '明シアン' },
+            { r: 60,  g: 60,  b: 60,  name: '暗灰' },
+            { r: 168, g: 204, b: 236, name: 'パステル青' },
+            { r: 188, g: 188, b: 236, name: 'パステル紫' },
+            { r: 212, g: 178, b: 236, name: 'パステルマゼンタ' },
+            { r: 236, g: 174, b: 236, name: 'パステルピンク' },
+            { r: 236, g: 174, b: 212, name: 'パステル赤' },
+            { r: 236, g: 180, b: 176, name: '肌色' },
+            { r: 228, g: 196, b: 144, name: 'クリーム' },
+            { r: 204, g: 210, b: 120, name: 'パステル黄' },
+            { r: 180, g: 222, b: 120, name: 'パステル緑' },
+            { r: 168, g: 226, b: 144, name: 'パステル青緑' },
+            { r: 152, g: 226, b: 180, name: 'パステルシアン' },
+            { r: 160, g: 214, b: 228, name: 'パステル水' },
+            { r: 255, g: 255, b: 255, name: '白' }
+        ];
+        
+        // Current active palette
+        let PALETTE = PALETTE_DIGITAL8;
+        let currentPaletteType = 'digital8';
+        
+        // Character sets for text mode (sorted by density, dark to bright)
+        const CHARSETS = {
+            standard: ' .:-=+*#%@',
+            block: ' ░▒▓█',
+            detailed: ' .\'`^",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$'
+        };
+        
+        // PCG block characters (2x2 quadrant)
+        const PCG_CHARS = [
+            ' ',  // 0000
+            '▗',  // 0001 - bottom right
+            '▖',  // 0010 - bottom left
+            '▄',  // 0011 - bottom half
+            '▝',  // 0100 - top right
+            '▐',  // 0101 - right half
+            '▞',  // 0110 - diagonal
+            '▟',  // 0111 - missing top left
+            '▘',  // 1000 - top left
+            '▚',  // 1001 - diagonal reverse
+            '▌',  // 1010 - left half
+            '▙',  // 1011 - missing top right
+            '▀',  // 1100 - top half
+            '▜',  // 1101 - missing bottom left
+            '▛',  // 1110 - missing bottom right
+            '█'   // 1111 - full block
+        ];
+        
+        // State
+        let sourceImage = null;
+        let outputZoom = 1;
+        let currentMode = 'text';
+        let textData = []; // Store text/color data for export
+        
+        // DOM Elements
+        const elements = {
+            imageInput: document.getElementById('imageInput'),
+            dropZone: document.getElementById('dropZone'),
+            inputPreview: document.getElementById('inputPreview'),
+            outputMode: document.getElementById('outputMode'),
+            cropPosition: document.getElementById('cropPosition'),
+            cropPositionValue: document.getElementById('cropPositionValue'),
+            cropLabelLeft: document.getElementById('cropLabelLeft'),
+            cropLabelRight: document.getElementById('cropLabelRight'),
+            modeText: document.getElementById('modeText'),
+            modePcg: document.getElementById('modePcg'),
+            textSettings: document.getElementById('textSettings'),
+            pcgSettings: document.getElementById('pcgSettings'),
+            charset: document.getElementById('charset'),
+            charsetPreview: document.getElementById('charsetPreview'),
+            threshold: document.getElementById('threshold'),
+            thresholdValue: document.getElementById('thresholdValue'),
+            brightness: document.getElementById('brightness'),
+            brightnessValue: document.getElementById('brightnessValue'),
+            contrast: document.getElementById('contrast'),
+            contrastValue: document.getElementById('contrastValue'),
+            saturation: document.getElementById('saturation'),
+            saturationValue: document.getElementById('saturationValue'),
+            fontSelect: document.getElementById('fontSelect'),
+            convertBtn: document.getElementById('convertBtn'),
+            convertBtnTop: document.getElementById('convertBtnTop'),
+            saveSettings: document.getElementById('saveSettings'),
+            resetSettings: document.getElementById('resetSettings'),
+            outputCanvas: document.getElementById('outputCanvas'),
+            outputWrapper: document.getElementById('outputWrapper'),
+            downloadOutput: document.getElementById('downloadOutput'),
+            copyOutput: document.getElementById('copyOutput'),
+            textOutput: document.getElementById('textOutput'),
+            copyText: document.getElementById('copyText'),
+            infoPixels: document.getElementById('infoPixels'),
+            infoChars: document.getElementById('infoChars'),
+            infoMode: document.getElementById('infoMode'),
+            paletteDisplay: document.getElementById('paletteDisplay'),
+            paletteSelect: document.getElementById('paletteSelect'),
+            paletteTitle: document.getElementById('paletteTitle'),
+            monochromeSettings: document.getElementById('monochromeSettings'),
+            monochromePalette: document.getElementById('monochromePalette'),
+            processingOverlay: document.getElementById('processingOverlay'),
+            toast: document.getElementById('toast'),
+            colorBlock1x1: document.getElementById('colorBlock1x1'),
+            colorBlock2x1: document.getElementById('colorBlock2x1'),
+            colorBlock2x2: document.getElementById('colorBlock2x2'),
+            ditherPatternSettings: document.getElementById('ditherPatternSettings'),
+            ditherStripe: document.getElementById('ditherStripe'),
+            ditherChecker: document.getElementById('ditherChecker'),
+            ditherHorizontal: document.getElementById('ditherHorizontal'),
+            ditherPatternInfo: document.getElementById('ditherPatternInfo')
+        };
+        
+        // Default settings
+        const defaultSettings = {
+            outputMode: 'x1turbo',
+            cropPosition: 50,
+            mode: 'text',
+            charset: 'standard',
+            threshold: 50,
+            brightness: 0,
+            contrast: 0,
+            saturation: 0,
+            font: 'VT323',
+            colorBlock: '1x1',
+            ditherPattern: 'stripe',
+            palette: 'digital8',
+            monochromeColor: 2  // Default: MSX green (index 2)
+        };
+        
+        // Initialize
+        function init() {
+            loadSettings();
+            setupEventListeners();
+            updateAllValues();
+            initPaletteDisplay();
+            updateCharsetPreview();
+        }
+        
+        function initPaletteDisplay() {
+            const display = elements.paletteDisplay;
+            display.innerHTML = '';
+            PALETTE.forEach((color, i) => {
+                const swatch = document.createElement('div');
+                swatch.className = 'palette-swatch';
+                swatch.style.background = rgbToHex(color.r, color.g, color.b);
+                swatch.style.color = (color.r + color.g + color.b) > 380 ? '#000' : '#fff';
+                swatch.textContent = i;
+                swatch.title = color.name;
+                display.appendChild(swatch);
+            });
+            
+            // Update title
+            const titles = {
+                'digital8': '🎨 カラーパレット（デジタルRGB 8色）',
+                'msx': '🎨 カラーパレット（MSX 15色）',
+                'famicom': '🎨 カラーパレット（ファミコン 54色）',
+                'monochrome': '🎨 モノクロ（単色モード）'
+            };
+            elements.paletteTitle.textContent = titles[currentPaletteType] || titles.digital8;
+        }
+        
+        function setPalette(paletteType) {
+            currentPaletteType = paletteType;
+            switch (paletteType) {
+                case 'msx':
+                    PALETTE = PALETTE_MSX;
+                    break;
+                case 'famicom':
+                    PALETTE = PALETTE_FAMICOM;
+                    break;
+                case 'monochrome':
+                    // Monochrome uses single color, PALETTE not used directly
+                    PALETTE = PALETTE_DIGITAL8;  // Fallback for display
+                    break;
+                default:
+                    PALETTE = PALETTE_DIGITAL8;
+            }
+            initPaletteDisplay();
+            
+            // Show/hide monochrome settings
+            const isMonochrome = (paletteType === 'monochrome');
+            elements.monochromeSettings.style.display = isMonochrome ? 'block' : 'none';
+            elements.paletteDisplay.style.display = isMonochrome ? 'none' : 'flex';
+            
+            if (isMonochrome) {
+                initMonochromePalette();
+            }
+        }
+        
+        // Initialize monochrome color palette (MSX 16 colors)
+        function initMonochromePalette() {
+            const container = elements.monochromePalette;
+            container.innerHTML = '';
+            
+            PALETTE_MSX_16.forEach((color, i) => {
+                const swatch = document.createElement('div');
+                swatch.className = 'mono-swatch' + (i === currentMonochromeColor ? ' selected' : '');
+                swatch.style.background = rgbToHex(color.r, color.g, color.b);
+                swatch.style.color = (color.r + color.g + color.b) > 380 ? '#000' : '#fff';
+                swatch.textContent = i;
+                swatch.title = color.name;
+                swatch.addEventListener('click', () => setMonochromeColor(i));
+                container.appendChild(swatch);
+            });
+        }
+        
+        function setMonochromeColor(colorIndex) {
+            currentMonochromeColor = colorIndex;
+            
+            // Update UI selection
+            document.querySelectorAll('.mono-swatch').forEach((swatch, i) => {
+                swatch.classList.toggle('selected', i === colorIndex);
+            });
+        }
+        
+        function updateCharsetPreview() {
+            const chars = CHARSETS[elements.charset.value] || CHARSETS.standard;
+            elements.charsetPreview.textContent = chars;
+        }
+        
+        function setupEventListeners() {
+            elements.imageInput.addEventListener('change', handleFileSelect);
+            
+            elements.dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                elements.dropZone.classList.add('dragover');
+            });
+            elements.dropZone.addEventListener('dragleave', () => {
+                elements.dropZone.classList.remove('dragover');
+            });
+            elements.dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                elements.dropZone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) handleFile(files[0]);
+            });
+            
+            // Mode selection
+            elements.modeText.addEventListener('click', () => setMode('text'));
+            elements.modePcg.addEventListener('click', () => setMode('pcg'));
+            
+            elements.charset.addEventListener('change', updateCharsetPreview);
+            
+            elements.threshold.addEventListener('input', () => {
+                elements.thresholdValue.textContent = elements.threshold.value + '%';
+            });
+            
+            elements.brightness.addEventListener('input', () => {
+                elements.brightnessValue.textContent = elements.brightness.value;
+            });
+            
+            elements.contrast.addEventListener('input', () => {
+                elements.contrastValue.textContent = elements.contrast.value;
+            });
+            
+            elements.saturation.addEventListener('input', () => {
+                elements.saturationValue.textContent = elements.saturation.value;
+            });
+            
+            // Palette selection
+            elements.paletteSelect.addEventListener('change', () => {
+                setPalette(elements.paletteSelect.value);
+            });
+            
+            elements.cropPosition.addEventListener('input', () => {
+                elements.cropPositionValue.textContent = elements.cropPosition.value + '%';
+            });
+            
+            // Color block size buttons
+            elements.colorBlock1x1.addEventListener('click', () => setColorBlock('1x1'));
+            elements.colorBlock2x1.addEventListener('click', () => setColorBlock('2x1'));
+            elements.colorBlock2x2.addEventListener('click', () => setColorBlock('2x2'));
+            
+            // Dither pattern buttons
+            elements.ditherStripe.addEventListener('click', () => setDitherPattern('stripe'));
+            elements.ditherChecker.addEventListener('click', () => setDitherPattern('checker'));
+            elements.ditherHorizontal.addEventListener('click', () => setDitherPattern('horizontal'));
+            
+            elements.convertBtn.addEventListener('click', () => convert());
+            elements.convertBtnTop.addEventListener('click', () => convert());
+            elements.saveSettings.addEventListener('click', saveSettings);
+            elements.resetSettings.addEventListener('click', resetSettings);
+            
+            elements.downloadOutput.addEventListener('click', () => downloadCanvas(elements.outputCanvas, 'textgraphics.png'));
+            elements.copyOutput.addEventListener('click', () => copyCanvasToClipboard(elements.outputCanvas));
+            elements.copyText.addEventListener('click', () => copyTextToClipboard());
+            
+            document.querySelectorAll('.zoom-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const zoom = parseFloat(btn.dataset.zoom);
+                    document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    outputZoom = zoom;
+                    updateOutputDisplay();
+                });
+            });
+        }
+        
+        function setMode(mode) {
+            currentMode = mode;
+            elements.modeText.classList.toggle('active', mode === 'text');
+            elements.modePcg.classList.toggle('active', mode === 'pcg');
+            elements.textSettings.style.display = mode === 'text' ? 'block' : 'none';
+            elements.pcgSettings.style.display = mode === 'pcg' ? 'block' : 'none';
+            elements.infoMode.textContent = mode === 'text' ? 'テキスト' : 'PCG';
+        }
+        
+        let currentColorBlock = '1x1';
+        let currentDitherPattern = 'stripe';
+        let currentMonochromeColor = 2;  // Default: MSX green
+        
+        function setColorBlock(block) {
+            currentColorBlock = block;
+            elements.colorBlock1x1.classList.toggle('active', block === '1x1');
+            elements.colorBlock2x1.classList.toggle('active', block === '2x1');
+            elements.colorBlock2x2.classList.toggle('active', block === '2x2');
+            
+            // Show/hide dither pattern settings
+            elements.ditherPatternSettings.style.display = (block !== '1x1') ? 'block' : 'none';
+        }
+        
+        function setDitherPattern(pattern) {
+            currentDitherPattern = pattern;
+            elements.ditherStripe.classList.toggle('active', pattern === 'stripe');
+            elements.ditherChecker.classList.toggle('active', pattern === 'checker');
+            elements.ditherHorizontal.classList.toggle('active', pattern === 'horizontal');
+            
+            // Update info text
+            const infoTexts = {
+                'stripe': '縦縞: 奇数列と偶数列で色分け',
+                'checker': '市松: 行ごとに色順を入れ替え',
+                'horizontal': '横縞: 奇数行は明るい色、偶数行は暗い色'
+            };
+            elements.ditherPatternInfo.textContent = infoTexts[pattern];
+        }
+        
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        }
+        
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showToast('画像ファイルを選択してください');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    sourceImage = img;
+                    elements.inputPreview.innerHTML = '';
+                    const previewImg = document.createElement('img');
+                    previewImg.src = e.target.result;
+                    elements.inputPreview.appendChild(previewImg);
+                    showToast('画像を読み込みました');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function updateAllValues() {
+            elements.cropPositionValue.textContent = elements.cropPosition.value + '%';
+            elements.thresholdValue.textContent = elements.threshold.value + '%';
+            elements.brightnessValue.textContent = elements.brightness.value;
+            elements.contrastValue.textContent = elements.contrast.value;
+            elements.saturationValue.textContent = elements.saturation.value;
+        }
+        
+        // Color utilities
+        function colorDistance(c1, c2) {
+            return Math.pow(c1.r - c2.r, 2) + Math.pow(c1.g - c2.g, 2) + Math.pow(c1.b - c2.b, 2);
+        }
+        
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('');
+        }
+        
+        // Get luminance - handles both (r,g,b) arguments and {r,g,b} object
+        function getLuminance(rOrColor, g, b) {
+            if (typeof rOrColor === 'object') {
+                return 0.299 * rOrColor.r + 0.587 * rOrColor.g + 0.114 * rOrColor.b;
+            }
+            return 0.299 * rOrColor + 0.587 * g + 0.114 * b;
+        }
+        
+        function findNearestColor(r, g, b) {
+            let nearest = PALETTE[0];
+            let minDist = Infinity;
+            for (const color of PALETTE) {
+                const dist = colorDistance({ r, g, b }, color);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearest = color;
+                }
+            }
+            return nearest;
+        }
+        
+        // Find best 2-color pair for a block of pixels
+        function findBest2Colors(pixels) {
+            let bestPair = [PALETTE[0], PALETTE[7]];
+            let bestError = Infinity;
+            
+            // Try all combinations of 2 colors from palette
+            for (let i = 0; i < PALETTE.length; i++) {
+                for (let j = i; j < PALETTE.length; j++) {
+                    const c1 = PALETTE[i];
+                    const c2 = PALETTE[j];
+                    
+                    let totalError = 0;
+                    for (const pixel of pixels) {
+                        const dist1 = colorDistance(pixel, c1);
+                        const dist2 = colorDistance(pixel, c2);
+                        totalError += Math.min(dist1, dist2);
+                    }
+                    
+                    if (totalError < bestError) {
+                        bestError = totalError;
+                        bestPair = [c1, c2];
+                    }
+                }
+            }
+            
+            return bestPair;
+        }
+        
+        // Apply dither pattern to determine which color to use
+        function applyBlockDitherPattern(color1, color2, charX, charY, pattern) {
+            // Sort by luminance for horizontal pattern
+            const lum1 = getLuminance(color1);
+            const lum2 = getLuminance(color2);
+            const bright = lum1 >= lum2 ? color1 : color2;
+            const dark = lum1 >= lum2 ? color2 : color1;
+            
+            switch (pattern) {
+                case 'stripe':
+                    // 縦縞: 奇数列 = color1, 偶数列 = color2
+                    return (charX % 2 === 0) ? color1 : color2;
+                    
+                case 'checker':
+                    // 市松: 行ごとに入れ替え
+                    if (charY % 2 === 0) {
+                        return (charX % 2 === 0) ? color1 : color2;
+                    } else {
+                        return (charX % 2 === 0) ? color2 : color1;
+                    }
+                    
+                case 'horizontal':
+                    // 横縞: 奇数行は明るい色、偶数行は暗い色
+                    return (charY % 2 === 0) ? dark : bright;
+                    
+                default:
+                    return color1;
+            }
+        }
+        
+        async function convert() {
+            if (!sourceImage) {
+                showToast('画像を選択してください');
+                return;
+            }
+            
+            elements.processingOverlay.classList.add('active');
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
+            try {
+                const settings = getSettings();
+                const dims = calculateDimensions(sourceImage.width, sourceImage.height, settings.outputMode, settings.cropPosition);
+                
+                // Update crop labels
+                if (dims.cropDirection === 'horizontal') {
+                    elements.cropLabelLeft.textContent = '左';
+                    elements.cropLabelRight.textContent = '右';
+                } else {
+                    elements.cropLabelLeft.textContent = '上';
+                    elements.cropLabelRight.textContent = '下';
+                }
+                
+                // Create work canvas at pixel resolution
+                const workCanvas = document.createElement('canvas');
+                workCanvas.width = dims.pixelWidth;
+                workCanvas.height = dims.pixelHeight;
+                const workCtx = workCanvas.getContext('2d');
+                
+                workCtx.imageSmoothingEnabled = false;
+                workCtx.drawImage(sourceImage, dims.cropX, dims.cropY, dims.srcW, dims.srcH, 0, 0, dims.pixelWidth, dims.pixelHeight);
+                
+                let imageData = workCtx.getImageData(0, 0, dims.pixelWidth, dims.pixelHeight);
+                
+                // Apply color adjustments
+                imageData = applyColorAdjustments(imageData, settings);
+                
+                // Process based on mode
+                if (currentMode === 'text') {
+                    renderTextMode(imageData, dims, settings);
+                } else {
+                    renderPcgMode(imageData, dims, settings);
+                }
+                
+                updateInfo(dims);
+                updateOutputDisplay();
+                
+            } catch (error) {
+                console.error('Conversion error:', error);
+                showToast('変換エラーが発生しました');
+            }
+            
+            elements.processingOverlay.classList.remove('active');
+        }
+        
+        function calculateDimensions(srcWidth, srcHeight, mode, cropPosition = 50) {
+            let charWidth, charHeight, multiplier = 1;
+            
+            // Parse mode and multiplier
+            if (mode.startsWith('x1turbo')) {
+                charWidth = 80;
+                charHeight = 25;
+                if (mode === 'x1turbo2x') multiplier = 2;
+                if (mode === 'x1turbo4x') multiplier = 4;
+            } else if (mode.startsWith('vga')) {
+                charWidth = 80;
+                charHeight = 30;
+                if (mode === 'vga2x') multiplier = 2;
+                if (mode === 'vga4x') multiplier = 4;
+            } else {
+                // auto modes
+                if (mode === 'auto2x') multiplier = 2;
+                if (mode === 'auto4x') multiplier = 4;
+                if (mode === 'auto8x') multiplier = 8;
+                
+                // Base: 80×25 for auto
+                charWidth = 80;
+                charHeight = 25;
+                
+                // Calculate char dimensions to maintain aspect ratio
+                const srcAspect = srcWidth / srcHeight;
+                
+                // charRatio = srcAspect × 2 (account for 1:2 char aspect)
+                const charRatio = srcAspect * 2;
+                
+                if (charRatio >= (80 / 25)) {
+                    // Wide image: fit to width
+                    charWidth = 80;
+                    charHeight = Math.round(80 / charRatio);
+                } else {
+                    // Tall image: fit to height
+                    charHeight = 25;
+                    charWidth = Math.round(25 * charRatio);
+                }
+                
+                // Clamp to reasonable values
+                charWidth = Math.max(10, Math.min(80, charWidth));
+                charHeight = Math.max(5, Math.min(50, charHeight));
+            }
+            
+            // Apply multiplier to CHAR COUNT (not font size!)
+            charWidth *= multiplier;
+            charHeight *= multiplier;
+            
+            // Pixel dimensions = charCount × charSize (always 8×16)
+            const pixelWidth = charWidth * 8;
+            const pixelHeight = charHeight * 16;
+            
+            const outputAspect = pixelWidth / pixelHeight;
+            const srcAspect = srcWidth / srcHeight;
+            const positionRatio = (cropPosition - 25) / 50;
+            
+            let srcW, srcH, cropX, cropY, cropDirection;
+            
+            if (srcAspect > outputAspect) {
+                srcH = srcHeight;
+                srcW = Math.round(srcHeight * outputAspect);
+                const maxCropX = srcWidth - srcW;
+                cropX = Math.floor(maxCropX * positionRatio);
+                cropY = 0;
+                cropDirection = 'horizontal';
+            } else {
+                srcW = srcWidth;
+                srcH = Math.round(srcWidth / outputAspect);
+                const maxCropY = srcHeight - srcH;
+                cropY = Math.floor(maxCropY * positionRatio);
+                cropX = 0;
+                cropDirection = 'vertical';
+            }
+            
+            return { 
+                charWidth, charHeight, 
+                pixelWidth, pixelHeight,
+                multiplier,
+                cropX, cropY, srcW, srcH, cropDirection 
+            };
+        }
+        
+        function applyColorAdjustments(imageData, settings) {
+            const data = imageData.data;
+            const brightness = settings.brightness / 100;
+            const contrast = (settings.contrast + 100) / 100;
+            const saturation = (settings.saturation + 100) / 100;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i], g = data[i + 1], b = data[i + 2];
+                
+                r += brightness * 255;
+                g += brightness * 255;
+                b += brightness * 255;
+                
+                r = ((r / 255 - 0.5) * contrast + 0.5) * 255;
+                g = ((g / 255 - 0.5) * contrast + 0.5) * 255;
+                b = ((b / 255 - 0.5) * contrast + 0.5) * 255;
+                
+                const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                r = gray + saturation * (r - gray);
+                g = gray + saturation * (g - gray);
+                b = gray + saturation * (b - gray);
+                
+                data[i] = Math.max(0, Math.min(255, r));
+                data[i + 1] = Math.max(0, Math.min(255, g));
+                data[i + 2] = Math.max(0, Math.min(255, b));
+            }
+            return imageData;
+        }
+        
+        function renderTextMode(imageData, dims, settings) {
+            const data = imageData.data;
+            const chars = CHARSETS[settings.charset] || CHARSETS.standard;
+            const canvas = elements.outputCanvas;
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = dims.pixelWidth;
+            canvas.height = dims.pixelHeight;
+            
+            // Fill black background
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Set font (always 16px, 8×16 char)
+            const fontName = settings.font || 'VT323';
+            ctx.font = `16px "${fontName}"`;
+            ctx.textBaseline = 'top';
+            
+            textData = [];
+            let textOutput = '';
+            
+            // Get color block settings
+            const colorBlock = currentColorBlock;
+            const ditherPattern = currentDitherPattern;
+            
+            // Parse block size
+            const blockW = (colorBlock === '1x1') ? 1 : 2;
+            const blockH = (colorBlock === '2x2') ? 2 : 1;
+            
+            // Pre-calculate block colors for 2×1 and 2×2 modes
+            let blockColors = null;
+            if (colorBlock !== '1x1') {
+                const blocksX = Math.ceil(dims.charWidth / blockW);
+                const blocksY = Math.ceil(dims.charHeight / blockH);
+                blockColors = new Array(blocksY);
+                
+                for (let by = 0; by < blocksY; by++) {
+                    blockColors[by] = new Array(blocksX);
+                    for (let bx = 0; bx < blocksX; bx++) {
+                        // Collect pixels from entire block
+                        const pixels = [];
+                        
+                        for (let cdy = 0; cdy < blockH; cdy++) {
+                            for (let cdx = 0; cdx < blockW; cdx++) {
+                                const cx = bx * blockW + cdx;
+                                const cy = by * blockH + cdy;
+                                
+                                if (cx >= dims.charWidth || cy >= dims.charHeight) continue;
+                                
+                                // Sample from 8×16 character area
+                                for (let py = 0; py < 16; py++) {
+                                    for (let px = 0; px < 8; px++) {
+                                        const x = cx * 8 + px;
+                                        const y = cy * 16 + py;
+                                        const i = (y * dims.pixelWidth + x) * 4;
+                                        
+                                        pixels.push({ r: data[i], g: data[i + 1], b: data[i + 2] });
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Find best 2 colors for this block
+                        blockColors[by][bx] = findBest2Colors(pixels);
+                    }
+                }
+            }
+            
+            for (let cy = 0; cy < dims.charHeight; cy++) {
+                let rowText = '';
+                const rowData = [];
+                
+                for (let cx = 0; cx < dims.charWidth; cx++) {
+                    // Sample 8x16 pixel block for luminance
+                    let totalR = 0, totalG = 0, totalB = 0, totalLum = 0;
+                    
+                    for (let py = 0; py < 16; py++) {
+                        for (let px = 0; px < 8; px++) {
+                            const x = cx * 8 + px;
+                            const y = cy * 16 + py;
+                            const i = (y * dims.pixelWidth + x) * 4;
+                            
+                            totalR += data[i];
+                            totalG += data[i + 1];
+                            totalB += data[i + 2];
+                            totalLum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                        }
+                    }
+                    
+                    const sampleCount = 8 * 16;
+                    const avgR = totalR / sampleCount;
+                    const avgG = totalG / sampleCount;
+                    const avgB = totalB / sampleCount;
+                    const avgLum = totalLum / sampleCount;
+                    
+                    // Determine color based on mode
+                    let color;
+                    if (currentPaletteType === 'monochrome') {
+                        // Monochrome: use selected single color
+                        color = PALETTE_MSX_16[currentMonochromeColor];
+                    } else if (colorBlock === '1x1') {
+                        // 1×1: simple nearest color
+                        color = findNearestColor(avgR, avgG, avgB);
+                    } else {
+                        // 2×1 or 2×2: use pre-calculated block colors with dither pattern
+                        const bx = Math.floor(cx / blockW);
+                        const by = Math.floor(cy / blockH);
+                        const [color1, color2] = blockColors[by][bx];
+                        
+                        color = applyBlockDitherPattern(color1, color2, cx, cy, ditherPattern);
+                    }
+                    
+                    // Select character based on luminance
+                    const charIndex = Math.floor((avgLum / 255) * (chars.length - 1));
+                    const char = chars[Math.min(charIndex, chars.length - 1)];
+                    
+                    // Draw character
+                    ctx.fillStyle = rgbToHex(color.r, color.g, color.b);
+                    ctx.fillText(char, cx * 8, cy * 16);
+                    
+                    rowText += char;
+                    rowData.push({ char, color });
+                }
+                
+                textOutput += rowText + '\n';
+                textData.push(rowData);
+            }
+            
+            elements.textOutput.value = textOutput;
+        }
+        
+        function renderPcgMode(imageData, dims, settings) {
+            const data = imageData.data;
+            const threshold = settings.threshold / 100 * 255;
+            const canvas = elements.outputCanvas;
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = dims.pixelWidth;
+            canvas.height = dims.pixelHeight;
+            
+            // Fill black background
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            textData = [];
+            let textOutput = '';
+            
+            // Get color block settings
+            const colorBlock = currentColorBlock;
+            const ditherPattern = currentDitherPattern;
+            
+            // Parse block size
+            const blockW = (colorBlock === '1x1') ? 1 : 2;
+            const blockH = (colorBlock === '2x2') ? 2 : 1;
+            
+            // Pre-calculate block colors for 2×1 and 2×2 modes
+            let blockColors = null;
+            if (colorBlock !== '1x1') {
+                const blocksX = Math.ceil(dims.charWidth / blockW);
+                const blocksY = Math.ceil(dims.charHeight / blockH);
+                blockColors = new Array(blocksY);
+                
+                for (let by = 0; by < blocksY; by++) {
+                    blockColors[by] = new Array(blocksX);
+                    for (let bx = 0; bx < blocksX; bx++) {
+                        // Collect pixels from entire block
+                        const pixels = [];
+                        
+                        for (let cdy = 0; cdy < blockH; cdy++) {
+                            for (let cdx = 0; cdx < blockW; cdx++) {
+                                const cx = bx * blockW + cdx;
+                                const cy = by * blockH + cdy;
+                                
+                                if (cx >= dims.charWidth || cy >= dims.charHeight) continue;
+                                
+                                // Sample from 8×16 character area
+                                for (let py = 0; py < 16; py++) {
+                                    for (let px = 0; px < 8; px++) {
+                                        const x = cx * 8 + px;
+                                        const y = cy * 16 + py;
+                                        const i = (y * dims.pixelWidth + x) * 4;
+                                        
+                                        pixels.push({ r: data[i], g: data[i + 1], b: data[i + 2] });
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Find best 2 colors for this block
+                        blockColors[by][bx] = findBest2Colors(pixels);
+                    }
+                }
+            }
+            
+            for (let cy = 0; cy < dims.charHeight; cy++) {
+                let rowText = '';
+                const rowData = [];
+                
+                for (let cx = 0; cx < dims.charWidth; cx++) {
+                    // Sample 8x16 pixel block for color
+                    let totalR = 0, totalG = 0, totalB = 0;
+                    
+                    for (let py = 0; py < 16; py++) {
+                        for (let px = 0; px < 8; px++) {
+                            const x = cx * 8 + px;
+                            const y = cy * 16 + py;
+                            const i = (y * dims.pixelWidth + x) * 4;
+                            
+                            totalR += data[i];
+                            totalG += data[i + 1];
+                            totalB += data[i + 2];
+                        }
+                    }
+                    
+                    const sampleCount = 8 * 16;
+                    const avgR = totalR / sampleCount;
+                    const avgG = totalG / sampleCount;
+                    const avgB = totalB / sampleCount;
+                    
+                    // Determine color based on mode
+                    let color;
+                    if (currentPaletteType === 'monochrome') {
+                        // Monochrome: use selected single color
+                        color = PALETTE_MSX_16[currentMonochromeColor];
+                    } else if (colorBlock === '1x1') {
+                        // 1×1: simple nearest color
+                        color = findNearestColor(avgR, avgG, avgB);
+                    } else {
+                        // 2×1 or 2×2: use pre-calculated block colors with dither pattern
+                        const bx = Math.floor(cx / blockW);
+                        const by = Math.floor(cy / blockH);
+                        const [color1, color2] = blockColors[by][bx];
+                        
+                        color = applyBlockDitherPattern(color1, color2, cx, cy, ditherPattern);
+                    }
+                    
+                    // Calculate 4 quadrants (each 4x8 pixels)
+                    let pattern = 0;
+                    
+                    // Top-left (bit 3)
+                    let quadLum = 0;
+                    for (let py = 0; py < 8; py++) {
+                        for (let px = 0; px < 4; px++) {
+                            const x = cx * 8 + px;
+                            const y = cy * 16 + py;
+                            const i = (y * dims.pixelWidth + x) * 4;
+                            quadLum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                        }
+                    }
+                    if (quadLum / 32 > threshold) pattern |= 0x8;
+                    
+                    // Top-right (bit 2)
+                    quadLum = 0;
+                    for (let py = 0; py < 8; py++) {
+                        for (let px = 4; px < 8; px++) {
+                            const x = cx * 8 + px;
+                            const y = cy * 16 + py;
+                            const i = (y * dims.pixelWidth + x) * 4;
+                            quadLum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                        }
+                    }
+                    if (quadLum / 32 > threshold) pattern |= 0x4;
+                    
+                    // Bottom-left (bit 1)
+                    quadLum = 0;
+                    for (let py = 8; py < 16; py++) {
+                        for (let px = 0; px < 4; px++) {
+                            const x = cx * 8 + px;
+                            const y = cy * 16 + py;
+                            const i = (y * dims.pixelWidth + x) * 4;
+                            quadLum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                        }
+                    }
+                    if (quadLum / 32 > threshold) pattern |= 0x2;
+                    
+                    // Bottom-right (bit 0)
+                    quadLum = 0;
+                    for (let py = 8; py < 16; py++) {
+                        for (let px = 4; px < 8; px++) {
+                            const x = cx * 8 + px;
+                            const y = cy * 16 + py;
+                            const i = (y * dims.pixelWidth + x) * 4;
+                            quadLum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                        }
+                    }
+                    if (quadLum / 32 > threshold) pattern |= 0x1;
+                    
+                    const char = PCG_CHARS[pattern];
+                    
+                    // Draw block as filled rectangles
+                    const baseX = cx * 8;
+                    const baseY = cy * 16;
+                    
+                    ctx.fillStyle = rgbToHex(color.r, color.g, color.b);
+                    
+                    if (pattern & 0x8) ctx.fillRect(baseX, baseY, 4, 8);          // Top-left
+                    if (pattern & 0x4) ctx.fillRect(baseX + 4, baseY, 4, 8);      // Top-right
+                    if (pattern & 0x2) ctx.fillRect(baseX, baseY + 8, 4, 8);      // Bottom-left
+                    if (pattern & 0x1) ctx.fillRect(baseX + 4, baseY + 8, 4, 8);  // Bottom-right
+                    
+                    rowText += char;
+                    rowData.push({ char, pattern, color });
+                }
+                
+                textOutput += rowText + '\n';
+                textData.push(rowData);
+            }
+            
+            elements.textOutput.value = textOutput;
+        }
+        
+        function updateOutputDisplay() {
+            const canvas = elements.outputCanvas;
+            canvas.style.width = (canvas.width * outputZoom) + 'px';
+            canvas.style.height = (canvas.height * outputZoom) + 'px';
+        }
+        
+        function updateInfo(dims) {
+            const baseW = dims.charWidth * 8;
+            const baseH = dims.charHeight * 16;
+            if (dims.multiplier > 1) {
+                elements.infoPixels.textContent = `${dims.pixelWidth} × ${dims.pixelHeight} (×${dims.multiplier})`;
+            } else {
+                elements.infoPixels.textContent = `${dims.pixelWidth} × ${dims.pixelHeight}`;
+            }
+            elements.infoChars.textContent = `${dims.charWidth} × ${dims.charHeight}`;
+        }
+        
+        function getSettings() {
+            return {
+                outputMode: elements.outputMode.value,
+                cropPosition: parseInt(elements.cropPosition.value),
+                mode: currentMode,
+                charset: elements.charset.value,
+                threshold: parseInt(elements.threshold.value),
+                brightness: parseInt(elements.brightness.value),
+                contrast: parseInt(elements.contrast.value),
+                saturation: parseInt(elements.saturation.value),
+                font: elements.fontSelect.value,
+                colorBlock: currentColorBlock,
+                ditherPattern: currentDitherPattern,
+                palette: currentPaletteType,
+                monochromeColor: currentMonochromeColor
+            };
+        }
+        
+        function saveSettings() {
+            const settings = getSettings();
+            document.cookie = `textgfx_settings=${JSON.stringify(settings)}; max-age=31536000; path=/`;
+            showToast('設定を保存しました');
+        }
+        
+        function loadSettings() {
+            const match = document.cookie.match(/textgfx_settings=([^;]+)/);
+            if (match) {
+                try {
+                    const settings = JSON.parse(match[1]);
+                    applySettings(settings);
+                } catch (e) {
+                    console.error('Failed to load settings:', e);
+                }
+            }
+        }
+        
+        function applySettings(settings) {
+            elements.outputMode.value = settings.outputMode || defaultSettings.outputMode;
+            elements.cropPosition.value = settings.cropPosition || defaultSettings.cropPosition;
+            elements.charset.value = settings.charset || defaultSettings.charset;
+            elements.threshold.value = settings.threshold || defaultSettings.threshold;
+            elements.brightness.value = settings.brightness || defaultSettings.brightness;
+            elements.contrast.value = settings.contrast || defaultSettings.contrast;
+            elements.saturation.value = settings.saturation || defaultSettings.saturation;
+            elements.fontSelect.value = settings.font || defaultSettings.font;
+            
+            if (settings.mode) {
+                setMode(settings.mode);
+            }
+            
+            if (settings.colorBlock) {
+                setColorBlock(settings.colorBlock);
+            }
+            
+            if (settings.ditherPattern) {
+                setDitherPattern(settings.ditherPattern);
+            }
+            
+            if (settings.palette) {
+                elements.paletteSelect.value = settings.palette;
+                setPalette(settings.palette);
+            }
+            
+            if (settings.monochromeColor !== undefined) {
+                currentMonochromeColor = settings.monochromeColor;
+                if (currentPaletteType === 'monochrome') {
+                    initMonochromePalette();
+                }
+            }
+            
+            updateAllValues();
+            updateCharsetPreview();
+        }
+        
+        function resetSettings() {
+            applySettings(defaultSettings);
+            showToast('設定をリセットしました');
+            if (sourceImage) convert();
+        }
+        
+        function downloadCanvas(canvas, filename) {
+            const dataUrl = canvas.toDataURL('image/png');
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            
+            if (isIOS) {
+                const newTab = window.open();
+                if (newTab) {
+                    newTab.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta name="viewport" content="width=device-width, initial-scale=1">
+                            <title>${filename}</title>
+                            <style>
+                                body { margin: 0; padding: 20px; background: #0a0a0a; color: #00ff00; font-family: -apple-system, sans-serif; text-align: center; }
+                                img { image-rendering: pixelated; border: 2px solid #004400; max-width: 100%; margin-top: 10px; }
+                                .hint { background: #00ff00; color: black; padding: 15px; border-radius: 8px; margin: 10px; font-size: 16px; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="hint">📱 画像を長押し →「写真に追加」で保存</div>
+                            <img src="${dataUrl}" />
+                        </body>
+                        </html>
+                    `);
+                    newTab.document.close();
+                    showToast('新しいタブで開きました');
+                } else {
+                    window.location.href = dataUrl;
+                }
+            } else {
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('ダウンロードを開始しました');
+            }
+        }
+        
+        async function copyCanvasToClipboard(canvas) {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            
+            if (isIOS) {
+                openImageInNewTab(canvas, '画像を長押しでコピーまたは保存');
+                return;
+            }
+            
+            try {
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                showToast('クリップボードにコピーしました');
+                return;
+            } catch (e) {
+                console.log('Clipboard API not available');
+            }
+            
+            openImageInNewTab(canvas, '画像を右クリック →「画像をコピー」');
+        }
+        
+        function openImageInNewTab(canvas, message) {
+            const dataUrl = canvas.toDataURL('image/png');
+            const newTab = window.open();
+            if (newTab) {
+                newTab.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head><title>画像</title>
+                    <style>
+                        body { margin: 0; padding: 20px; background: #0a0a0a; color: #00ff00; text-align: center; }
+                        img { image-rendering: pixelated; max-width: 100%; margin-top: 10px; }
+                        .hint { background: #00ff00; color: black; padding: 15px; border-radius: 8px; margin: 10px; }
+                    </style>
+                    </head>
+                    <body>
+                        <div class="hint">📋 ${message}</div>
+                        <img src="${dataUrl}" />
+                    </body>
+                    </html>
+                `);
+                newTab.document.close();
+                showToast('新しいタブで開きました');
+            }
+        }
+        
+        function copyTextToClipboard() {
+            const text = elements.textOutput.value;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('テキストをコピーしました');
+            }).catch(() => {
+                elements.textOutput.select();
+                document.execCommand('copy');
+                showToast('テキストをコピーしました');
+            });
+        }
+        
+        function showToast(message) {
+            elements.toast.textContent = message;
+            elements.toast.classList.add('show');
+            setTimeout(() => elements.toast.classList.remove('show'), 2000);
+        }
+        
+        // Wait for fonts to load
+        document.fonts.ready.then(() => {
+            init();
+        });
+    </script>
+</body>
+</html>
