@@ -1,2 +1,6 @@
 .claude/
 AGENTS.md
+sources/x1-pcg-converter/*_index.html
+deploy.md
+deploy.ps1
+deploy.log
