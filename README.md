@@ -13,10 +13,10 @@ PomiSystem は、現代の画像をレトロコンピュータのグラフィッ
 | コンバーター | 対象システム | 解像度 | 特徴 |
 |---|---|---|---|
 | NES BG Converter | ファミコン / NES | 256x240 | 最大32パレット、CHRタイル最適化、魔改造モード |
-| SNES BG Converter | スーパーファミコン | - | 16bit向け変換 |
+| SNES BG Converter | スーパーファミコン | 256x224 | 最大32パレット、CHR最大4096 |
 | MSX Screen 2 Converter | MSX1 | 256x192 | TMS9918パレット (15色)、エッジ強調 (達人モード) |
-| X1 PCG Converter | SHARP X1 / X1turbo | - | PCG (プログラマブルキャラクタジェネレータ) |
-| VB BG Converter | Virtual Boy | - | 赤黒4階調 |
+| X1 PCG Converter | SHARP X1 / X1turbo | 320x200 | PCG (プログラマブルキャラクタジェネレータ) |
+| VB BG Converter | Virtual Boy | 384x224 | 赤黒4階調 |
 | Text Graphics Converter | X1turbo / VGA端末 | 80x25 / 80x30 | ASCII / PCGモード、テキストアート |
 
 ## 主な機能
@@ -72,10 +72,10 @@ PomiSystem は、現代の画像をレトロコンピュータのグラフィッ
 
 ## 使い方
 
-1. `sources/` 内の各コンバーターフォルダにある `index.html` をブラウザで開く
+1. `sources/` 内の各コンバーター フォルダにある `index.html` をブラウザで開く
 2. 画像をドラッグアンドドロップ、または「ファイルを選択」で読み込む
 3. パラメータを調整する
-4. 「Download PNG」または「Copy to Clipboard」で出力する
+4. 「保存」または「コピー」で出力する
 
 ## ディレクトリ構成
 
