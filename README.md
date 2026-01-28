@@ -104,3 +104,7 @@ MIT License
 ## 作者
 
 Medamap
+
+## コントリビュータ
+
+- Codex <codex@example.com>
