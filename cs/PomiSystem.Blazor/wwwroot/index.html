@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PomiSystem.Blazor</title>
-    <base href="/app/system/" />
+    <base href="./" />
     <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="css/app.css?v=__BUILD_ID__" />
     <link rel="icon" type="image/png" href="favicon.png?v=__BUILD_ID__" />
@@ -15,6 +15,19 @@
 </head>
 
 <body>
+    <script>
+        (function () {
+            var path = window.location.pathname || "/";
+            var body = document.body;
+            if (path.indexOf("/system_develop") !== -1) {
+                body.classList.add("env-develop");
+            } else if (path.indexOf("/system_staging") !== -1) {
+                body.classList.add("env-staging");
+            } else {
+                body.classList.add("env-release");
+            }
+        })();
+    </script>
     <div id="app">
         <svg class="loading-progress">
             <circle r="40%" cx="50%" cy="50%" />
@@ -29,7 +42,13 @@
         <a class="dismiss">🗙</a>
     </div>
     <script src="js/build-info.js?v=__BUILD_ID__"></script>
-    <script src="js/pomi-storage.js?v=__BUILD_ID__"></script>
+    <script src="js/pomi-image.js?v=__BUILD_ID__"></script>
+    <script src="js/pomi-color.js?v=__BUILD_ID__"></script>
+    <script src="js/pomi-dither.js?v=__BUILD_ID__"></script>
+    <script src="js/pomi-palette.js?v=__BUILD_ID__"></script>
+    <script src="js/pomi-x1.js?v=__BUILD_ID__"></script>
+    <script src="js/pomi-msx-sc2-exporter.js?v=__BUILD_ID__"></script>
+    <script src="js/pomi-msx-main.js?v=__BUILD_ID__"></script>
     <script src="_framework/blazor.webassembly.js?v=__BUILD_ID__"></script>
 </body>
 

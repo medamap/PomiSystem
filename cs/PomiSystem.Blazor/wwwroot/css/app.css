@@ -1,4 +1,4 @@
-:root {
+﻿:root {
     --bg-0: #0d1215;
     --bg-1: #111b21;
     --bg-2: #15232b;
@@ -12,6 +12,9 @@
     --muted: #8fa1a8;
     --border: rgba(255, 255, 255, 0.08);
     --glow: 0 0 40px rgba(55, 200, 113, 0.25);
+    --env-glow-1: rgba(120, 210, 255, 0.5);
+    --env-glow-2: rgba(80, 170, 255, 0.35);
+    --env-glow-3: rgba(120, 210, 255, 0.25);
 }
 
 * {
@@ -20,11 +23,35 @@
     padding: 0;
 }
 
+body.env-release {
+    --env-glow-1: rgba(120, 210, 255, 0.5);
+    --env-glow-2: rgba(80, 170, 255, 0.35);
+    --env-glow-3: rgba(120, 210, 255, 0.25);
+    --env-bg-top: #0f1d25;
+    --env-bg-bottom: #0c1418;
+}
+
+body.env-staging {
+    --env-glow-1: rgba(255, 220, 90, 0.55);
+    --env-glow-2: rgba(255, 190, 70, 0.38);
+    --env-glow-3: rgba(255, 170, 60, 0.26);
+    --env-bg-top: #1d1a0f;
+    --env-bg-bottom: #14110b;
+}
+
+body.env-develop {
+    --env-glow-1: rgba(255, 140, 190, 0.6);
+    --env-glow-2: rgba(255, 90, 170, 0.4);
+    --env-glow-3: rgba(255, 90, 150, 0.3);
+    --env-bg-top: #23121b;
+    --env-bg-bottom: #140c12;
+}
+
 html, body {
     font-family: "Space Grotesk", "Noto Sans JP", "Yu Gothic", sans-serif;
-    background: radial-gradient(1200px 600px at 15% -10%, rgba(92, 196, 246, 0.25), transparent 60%),
-        radial-gradient(900px 500px at 85% 0%, rgba(55, 200, 113, 0.22), transparent 55%),
-        linear-gradient(180deg, var(--bg-1), var(--bg-0));
+    background: radial-gradient(1200px 600px at 15% -10%, var(--env-glow-1), transparent 60%),
+        radial-gradient(900px 500px at 85% 0%, var(--env-glow-2), transparent 55%),
+        linear-gradient(180deg, var(--env-bg-top), var(--env-bg-bottom));
     color: var(--text-0);
     min-height: 100%;
 }
@@ -70,7 +97,7 @@ button {
     content: "";
     position: absolute;
     inset: 0;
-    background: radial-gradient(600px 300px at 10% 20%, rgba(246, 177, 92, 0.2), transparent 60%),
+    background: radial-gradient(600px 300px at 10% 20%, var(--env-glow-3), transparent 60%),
         linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 60%);
     opacity: 0.6;
     pointer-events: none;
@@ -271,10 +298,46 @@ button {
     padding-top: 10px;
 }
 
+.env-label {
+    display: none;
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.env-release .env-label.env-release,
+body.env-staging .env-label.env-staging,
+body.env-develop .env-label.env-develop {
+    display: inline-flex;
+}
+
+.env-label.env-release {
+    color: rgba(120, 210, 255, 0.98);
+    border-color: rgba(120, 210, 255, 0.5);
+    box-shadow: 0 0 18px rgba(120, 210, 255, 0.45);
+}
+
+.env-label.env-staging {
+    color: rgba(255, 215, 90, 0.98);
+    border-color: rgba(255, 215, 90, 0.5);
+    box-shadow: 0 0 18px rgba(255, 215, 90, 0.45);
+}
+
+.env-label.env-develop {
+    color: rgba(255, 140, 190, 0.98);
+    border-color: rgba(255, 140, 190, 0.5);
+    box-shadow: 0 0 18px rgba(255, 140, 190, 0.45);
+}
+
 .build-info {
     margin-top: 8px;
     display: inline-flex;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
     font-size: 0.7rem;
     color: var(--muted);
@@ -813,3 +876,4 @@ button {
 .loading-progress-text:after {
     content: var(--blazor-load-percentage-text, "Loading");
 }
+
