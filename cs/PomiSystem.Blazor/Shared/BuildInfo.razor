@@ -1,0 +1,31 @@
+@inject IJSRuntime JS
+
+<div class="build-info">
+    <span class="build-label">Build</span>
+    <span class="build-value">@BuildDisplay</span>
+</div>
+
+@code {
+    private string BuildDisplay = "-";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        var info = await JS.InvokeAsync<BuildInfoPayload?>("pomiBuildInfo.get");
+        if (info != null && !string.IsNullOrWhiteSpace(info.BuildTime))
+        {
+            BuildDisplay = $"{info.BuildTime} ({info.BuildId})";
+            StateHasChanged();
+        }
+    }
+
+    private class BuildInfoPayload
+    {
+        public string? BuildId { get; set; }
+        public string? BuildTime { get; set; }
+    }
+}

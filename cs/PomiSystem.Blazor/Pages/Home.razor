@@ -1,0 +1,99 @@
+@page "/"
+
+<PageTitle>ぽみ基幹システム</PageTitle>
+
+<div class="landing">
+    <section class="hero">
+        <div class="hero-eyebrow">Pomi Core System / WASM Initiative</div>
+        <h1 class="hero-title">ぽみ基幹システム</h1>
+        <p class="hero-lead">
+            画像変換を中心に、レトロ機種向けの素材生成・管理・活用を一つに集約する中枢。
+            変換は目的ではなく、創作を加速させる基盤である。
+        </p>
+        <div class="hero-actions">
+            <div class="cta-card primary">
+                <div class="cta-title">プロジェクト管理</div>
+                <div class="cta-desc">複数機種にまたがる制作を一本化し、成果物を資産として管理する。</div>
+                <div class="cta-meta">推奨フロー</div>
+            </div>
+            <button class="cta-card" type="button" @onclick="GoToQuick">
+                <div class="cta-title">クイック変換</div>
+                <div class="cta-desc">プロジェクトを作らず、即変換したい人のための最短動線。</div>
+                <div class="cta-meta">即時実行</div>
+            </button>
+        </div>
+        <div class="hero-badges">
+            <span class="badge">Local-First</span>
+            <span class="badge">C# WASM</span>
+            <span class="badge">Module-Oriented</span>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>中核メニュー</h2>
+            <p>機能を起点に機種を横断する設計。選択した機種群に対して同一ワークフローを適用する。</p>
+        </div>
+        <div class="menu-grid">
+            <div class="menu-card">
+                <h3>画像変換</h3>
+                <p>MSX / X1 / NES ほか。リソースを統一パイプラインで生成。</p>
+                <span class="menu-tag">変換</span>
+            </div>
+            <div class="menu-card">
+                <h3>データ変換</h3>
+                <p>タイル / パレット / PCG / BG の相互変換と検証。</p>
+                <span class="menu-tag">データ</span>
+            </div>
+            <div class="menu-card">
+                <h3>オーサリング</h3>
+                <p>マップ・キャラチップ・配置データを統合生成。</p>
+                <span class="menu-tag">制作</span>
+            </div>
+            <div class="menu-card">
+                <h3>エミュレータ確認</h3>
+                <p>エミュレータ連携とディスクイメージ出力。</p>
+                <span class="menu-tag">検証</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel vision">
+        <div class="panel-header">
+            <h2>構想の軸</h2>
+            <p>妄想が実装に変わる瞬間を設計する。</p>
+        </div>
+        <div class="vision-grid">
+            <div class="vision-card">
+                <h3>画像変換中央集権機構</h3>
+                <p>既存ツールを統合し、変換結果を資産として再利用できる仕組みへ。</p>
+            </div>
+            <div class="vision-card">
+                <h3>AI統合（任意）</h3>
+                <p>意味づけマップやキャラ抽出をローカルLLMと連携させる。</p>
+            </div>
+            <div class="vision-card">
+                <h3>ローカルストレージ</h3>
+                <p>データは端末内で完結し、プロジェクト単位で整理・輸出入。</p>
+            </div>
+            <div class="vision-card">
+                <h3>夢は広がる X1</h3>
+                <p>超横長背景、PCG、2プレーン対応などの夢想を具現化する。</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="landing-footer">
+        <BuildInfo />
+    </footer>
+</div>
+
+@code {
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private void GoToQuick()
+    {
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
+        Nav.NavigateTo($"quick?ts={timestamp}");
+    }
+}

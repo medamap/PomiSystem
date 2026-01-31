@@ -1,0 +1,22 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /app/system/
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "^(index\.html|blazor\.boot\.json|blazor\.webassembly\.js|build-info\.js|pomi-storage\.js|app\.css|PomiSystem\.Blazor\.styles\.css)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_mime.c>
+    AddType application/wasm .wasm
+    AddEncoding br .br
+    AddEncoding gzip .gz
+</IfModule>

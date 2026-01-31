@@ -1,0 +1,734 @@
+@page "/quick"
+
+@inject IJSRuntime JS
+
+<PageTitle>クイック変換 | ぽみ基幹システム</PageTitle>
+
+<div class="quick-page">
+    <header class="quick-hero">
+        <div class="quick-eyebrow">Quick Convert</div>
+        <h1>クイック変換</h1>
+        <p>プロジェクトを作らず、即座に変換したい人のための入口。</p>
+        <BuildInfo />
+    </header>
+
+    <section class="quick-panel">
+        <div class="quick-panel-header">
+            <h2>ターゲット機種選択</h2>
+            <p>最初に変換対象を選択する。未選択のままでは変換は開始されない。</p>
+        </div>
+
+        <div class="target-grid">
+            @foreach (var target in Targets)
+            {
+                <button class="target-card @(SelectedTarget == target.Code ? "selected" : string.Empty)" @onclick="() => SelectTarget(target.Code)">
+                    <div class="target-name">@target.Name</div>
+                    <div class="target-desc">@target.Description</div>
+                </button>
+            }
+        </div>
+
+        <div class="target-hint">
+            @if (string.IsNullOrWhiteSpace(SelectedTarget))
+            {
+                <span>ターゲットを選択してください。</span>
+            }
+            else
+            {
+                <span>選択中: @Targets.First(t => t.Code == SelectedTarget).Name</span>
+            }
+        </div>
+    </section>
+
+    <section class="quick-panel is-placeholder">
+        <h3>変換パネル</h3>
+        @if (string.IsNullOrWhiteSpace(SelectedTarget))
+        {
+            <p>ターゲット未選択のため待機中。選択すると該当機種の変換UIが開く。</p>
+        }
+        else if (SelectedTarget == "msx")
+        {
+            <div class="quick-stage">
+                <div class="quick-stage-title">MSX Screen 2 変換（準備中）</div>
+                <p>まずは画像を読み込んでプレビューを確認する。</p>
+                <div class="quick-upload">
+                    <label class="quick-upload-label">
+                        画像を選択
+                        <InputFile OnChange="OnFileSelected" accept="image/*" class="quick-upload-input" />
+                    </label>
+                    <div class="quick-upload-meta">
+                        @if (!string.IsNullOrWhiteSpace(FileName))
+                        {
+                            <span>@FileName (@FileSizeKb KB)</span>
+                        }
+                        else
+                        {
+                            <span>未選択</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="quick-options">
+                    <label class="quick-option">
+                        出力サイズ
+                        <select @bind="MsxOutputMode" @bind:after="OnMsxSettingsCommitted" disabled="@IsUiLocked">
+                            <optgroup label="MSX 基準">
+                                <option value="msx">MSX標準（256×192）</option>
+                                <option value="msx2">MSX ×2（512×384）</option>
+                                <option value="msx4">MSX ×4（1024×768）</option>
+                            </optgroup>
+                            <optgroup label="オート（アスペクト比維持）">
+                                <option value="auto">オート</option>
+                                <option value="autox2">オート ×2</option>
+                                <option value="autox4">オート ×4</option>
+                            </optgroup>
+                            <optgroup label="標準解像度">
+                                <option value="qvga">QVGA（320×240）</option>
+                                <option value="vga">VGA（640×480）</option>
+                            </optgroup>
+                            <optgroup label="高解像度">
+                                <option value="svga">SVGA（800×600）</option>
+                                <option value="xga">XGA（1024×768）</option>
+                                <option value="sxga">SXGA（1280×1024）</option>
+                                <option value="hd">HD（1280×720）</option>
+                                <option value="uxga">UXGA（1600×1200）</option>
+                                <option value="fhd">FHD（1920×1080）</option>
+                                <option value="wuxga">WUXGA（1920×1200）</option>
+                                <option value="qhd">QHD（2560×1440）</option>
+                                <option value="qxga">QXGA（2048×1536）</option>
+                                <option value="uhd">UHD/4K（3840×2160）</option>
+                            </optgroup>
+                        </select>
+                    </label>
+                    <label class="quick-option">
+                        トリミング位置
+                        <input type="range"
+                               min="25"
+                               max="75"
+                               step="1"
+                               @bind-value="MsxCropPosition"
+                               @bind-value:event="oninput"
+                               @bind-value:after="OnSliderInputCrop"
+                               @onchange="OnSliderCommit"
+                               @onpointerup="OnSliderCommit"
+                               @onpointercancel="OnSliderCancel"
+                               @ref="CropPositionRef"
+                               disabled="@IsUiLocked" />
+                        <span class="quick-option-value">@MsxCropPosition%</span>
+                    </label>
+                    <label class="quick-option">
+                        ディザ
+                        <select @bind="MsxDitherMode" @bind:after="OnMsxSettingsCommitted" disabled="@IsUiLocked">
+                            <option value="none">なし（最寄色）</option>
+                            <option value="checker">市松模様ディザ</option>
+                            <option value="stripe">縦縞ディザ</option>
+                            <option value="stripe_strong">縦縞ディザ（強）</option>
+                            <option value="bayer2">Ordered Dither (Bayer 2×2)</option>
+                            <option value="bayer4">Ordered Dither (Bayer 4×4)</option>
+                            <option value="floyd">Floyd-Steinberg</option>
+                            <option value="atkinson">Atkinson</option>
+                        </select>
+                    </label>
+                    <label class="quick-option">
+                        強度
+                        <input type="range"
+                               min="0"
+                               max="100"
+                               step="5"
+                               @bind-value="MsxDitherStrength"
+                               @bind-value:event="oninput"
+                               @bind-value:after="OnSliderInputDither"
+                               @onchange="OnSliderCommit"
+                               @onpointerup="OnSliderCommit"
+                               @onpointercancel="OnSliderCancel"
+                               @ref="DitherStrengthRef"
+                               disabled="@IsDitherStrengthLocked" />
+                        <span class="quick-option-value">@MsxDitherStrength%</span>
+                    </label>
+                    <label class="quick-option">
+                        明るさ
+                        <input type="range"
+                               min="-100"
+                               max="100"
+                               step="5"
+                               @bind-value="MsxBrightness"
+                               @bind-value:event="oninput"
+                               @bind-value:after="OnSliderInputBrightness"
+                               @onchange="OnSliderCommit"
+                               @onpointerup="OnSliderCommit"
+                               @onpointercancel="OnSliderCancel"
+                               @ref="BrightnessRef"
+                               disabled="@IsUiLocked" />
+                        <span class="quick-option-value">@MsxBrightness</span>
+                    </label>
+                    <label class="quick-option">
+                        コントラスト
+                        <input type="range"
+                               min="-100"
+                               max="100"
+                               step="5"
+                               @bind-value="MsxContrast"
+                               @bind-value:event="oninput"
+                               @bind-value:after="OnSliderInputContrast"
+                               @onchange="OnSliderCommit"
+                               @onpointerup="OnSliderCommit"
+                               @onpointercancel="OnSliderCancel"
+                               @ref="ContrastRef"
+                               disabled="@IsUiLocked" />
+                        <span class="quick-option-value">@MsxContrast</span>
+                    </label>
+                    <label class="quick-option">
+                        彩度
+                        <input type="range"
+                               min="-100"
+                               max="100"
+                               step="5"
+                               @bind-value="MsxSaturation"
+                               @bind-value:event="oninput"
+                               @bind-value:after="OnSliderInputSaturation"
+                               @onchange="OnSliderCommit"
+                               @onpointerup="OnSliderCommit"
+                               @onpointercancel="OnSliderCancel"
+                               @ref="SaturationRef"
+                               disabled="@IsUiLocked" />
+                        <span class="quick-option-value">@MsxSaturation</span>
+                    </label>
+                    <label class="quick-option quick-toggle">
+                        <input type="checkbox" @bind="AutoConvert" @bind:after="OnAutoConvertToggled" disabled="@IsUiLocked" />
+                        <span>自動更新</span>
+                    </label>
+                    <label class="quick-option quick-toggle">
+                        <input type="checkbox" @bind="ShowPopupPreview" @bind:after="SaveMsxSettings" disabled="@IsUiLocked" />
+                        <span>ポップアップ画像</span>
+                    </label>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+                {
+                    <div class="quick-error">@ErrorMessage</div>
+                }
+
+                <div class="quick-preview">
+                    <div class="quick-preview-header">
+                        <span>入力プレビュー</span>
+                        <select class="quick-zoom-select" @bind="MsxInputZoom" @bind:after="OnInputZoomChanged" disabled="@IsUiLocked">
+                            <option value="fit">Fit</option>
+                            <option value="0.125">x0.125</option>
+                            <option value="0.25">x0.25</option>
+                            <option value="0.5">x0.5</option>
+                            <option value="1">x1</option>
+                            <option value="2">x2</option>
+                            <option value="4">x4</option>
+                        </select>
+                    </div>
+                    <div class="quick-preview-frame" @ref="InputPreviewFrameRef">
+                        @if (!string.IsNullOrWhiteSpace(PreviewDataUrl))
+                        {
+                            <img src="@PreviewDataUrl" alt="preview" @ref="InputPreviewImgRef" />
+                        }
+                        else
+                        {
+                            <div class="quick-preview-placeholder">プレビュー待機中</div>
+                        }
+                    </div>
+                </div>
+
+                <div class="quick-canvas">
+                    <div class="quick-canvas-header">
+                        <span>MSX出力プレビュー</span>
+                        <select class="quick-zoom-select" @bind="MsxOutputZoom" @bind:after="OnOutputZoomChanged" disabled="@IsUiLocked">
+                            <option value="fit">Fit</option>
+                            <option value="0.125">x0.125</option>
+                            <option value="0.25">x0.25</option>
+                            <option value="0.5">x0.5</option>
+                            <option value="1">x1</option>
+                            <option value="2">x2</option>
+                            <option value="4">x4</option>
+                        </select>
+                        <span class="quick-canvas-meta">@OutputInfo</span>
+                    </div>
+                    <div class="quick-status">
+                        <span class="quick-status-label">状態</span>
+                        <span class="quick-status-value">@StatusLabel</span>
+                    </div>
+                    <div class="quick-canvas-body" @ref="OutputCanvasWrapperRef">
+                        <canvas @ref="OutputCanvas" width="256" height="192"></canvas>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="quick-action @(CanConvert ? "ready" : string.Empty)" disabled="@(!CanConvert || IsConverting)" @onclick="ConvertMsx">
+                        手動変換
+                    </button>
+                    <button class="quick-action secondary" disabled="@(!HasOutput)" @onclick="DownloadPng">
+                        PNG保存
+                    </button>
+                    <button class="quick-action secondary" disabled="@(!CanDownloadScr)" @onclick="DownloadSc2">
+                        .sc2出力
+                    </button>
+                </div>
+                <div class="quick-note">
+                    .sc2 はBLOAD形式（SCREEN2 VRAM全域）。
+                </div>
+            </div>
+        }
+        else
+        {
+            <p>選択された機種の変換UIは未実装。</p>
+        }
+    </section>
+</div>
+
+@code {
+    private const string StorageKey = "pomi.quick.target";
+    private const string MsxSettingsKey = "pomi.msx.settings";
+    private const long MaxFileSize = 10 * 1024 * 1024;
+    private string? SelectedTarget;
+    private string? PreviewDataUrl;
+    private string? OutputInfo;
+    private string? FileName;
+    private string? ErrorMessage;
+    private long FileSizeBytes;
+    private ElementReference OutputCanvas;
+    private bool _shouldRenderPreview;
+    private bool _hasPreview;
+    private string MsxOutputMode = "msx";
+    private int MsxCropPosition = 50;
+    private string MsxInputZoom = "fit";
+    private string MsxOutputZoom = "fit";
+    private string MsxDitherMode = "none";
+    private int MsxDitherStrength = 50;
+    private int MsxBrightness = 0;
+    private int MsxContrast = 0;
+    private int MsxSaturation = 0;
+    private bool HasOutput;
+    private bool IsConverting;
+    private bool IsUiLocked;
+    private CancellationTokenSource? _convertCts;
+    private bool AutoConvert;
+    private bool ShowPopupPreview;
+    private MsxSettingsSnapshot _lastAppliedSettings = new();
+    private string StatusLabel = "未反映";
+    private ElementReference DitherStrengthRef;
+    private ElementReference BrightnessRef;
+    private ElementReference ContrastRef;
+    private ElementReference SaturationRef;
+    private ElementReference CropPositionRef;
+    private ElementReference _lastSliderRef;
+    private ElementReference InputPreviewImgRef;
+    private ElementReference InputPreviewFrameRef;
+    private ElementReference OutputCanvasWrapperRef;
+
+    private bool CanConvert => SelectedTarget == "msx" && _hasPreview;
+    private bool IsDitherStrengthLocked => IsUiLocked || !(MsxDitherMode?.StartsWith("stripe") ?? false);
+    private bool CanDownloadScr => HasOutput && MsxOutputMode == "msx";
+
+    private readonly List<TargetInfo> Targets = new()
+    {
+        new("msx", "MSX Screen 2", "8×1ライン2色制約、256×192")
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        SelectedTarget = await LocalStorageGetAsync(StorageKey);
+        await LoadMsxSettings();
+    }
+
+    private async Task SelectTarget(string code)
+    {
+        SelectedTarget = code;
+        await LocalStorageSetAsync(StorageKey, code);
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        ErrorMessage = null;
+        PreviewDataUrl = null;
+        OutputInfo = null;
+        FileName = null;
+        FileSizeBytes = 0;
+        HasOutput = false;
+
+        var file = e.File;
+        if (file == null)
+        {
+            return;
+        }
+
+        if (file.Size > MaxFileSize)
+        {
+            ErrorMessage = "ファイルサイズが大きすぎるため読み込めない。";
+            return;
+        }
+
+        try
+        {
+            FileName = file.Name;
+            FileSizeBytes = file.Size;
+            await using var stream = file.OpenReadStream(MaxFileSize);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var base64 = Convert.ToBase64String(ms.ToArray());
+            PreviewDataUrl = $"data:{file.ContentType};base64,{base64}";
+            _shouldRenderPreview = true;
+            _hasPreview = true;
+            await ConvertMsx();
+        }
+        catch
+        {
+            ErrorMessage = "画像の読み込みに失敗した。";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_shouldRenderPreview && !string.IsNullOrWhiteSpace(PreviewDataUrl))
+        {
+            _shouldRenderPreview = false;
+            var result = await JS.InvokeAsync<string?>("pomiMsx.drawPreview", OutputCanvas, PreviewDataUrl, MsxOutputMode, MsxCropPosition);
+            OutputInfo = result;
+            await ApplyZooms();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConvertMsx()
+    {
+        if (string.IsNullOrWhiteSpace(PreviewDataUrl))
+        {
+            return;
+        }
+
+        IsConverting = true;
+        IsUiLocked = true;
+        StatusLabel = "変換中…";
+        StateHasChanged();
+        OutputInfo = await JS.InvokeAsync<string?>(
+            "pomiMsx.drawScreen2",
+            OutputCanvas,
+            PreviewDataUrl,
+            MsxOutputMode,
+            MsxCropPosition,
+            MsxDitherMode,
+            MsxDitherStrength,
+            MsxBrightness,
+            MsxContrast,
+            MsxSaturation);
+        HasOutput = true;
+        _lastAppliedSettings = CaptureSettings();
+        StatusLabel = "反映済み";
+        IsConverting = false;
+
+        if (AutoConvert)
+        {
+            await JS.InvokeVoidAsync("pomiMsx.showConversionPopup", _lastSliderRef, OutputCanvas, ShowPopupPreview, 1000);
+            await Task.Delay(1000);
+        }
+
+        IsUiLocked = false;
+        StatusLabel = "反映済み";
+        await ApplyOutputZoom();
+        StateHasChanged();
+    }
+
+    private async Task DownloadPng()
+    {
+        if (!HasOutput)
+        {
+            return;
+        }
+        await JS.InvokeVoidAsync("pomiMsx.downloadPng", OutputCanvas, "msx_screen2.png");
+    }
+
+    private async Task DownloadSc2()
+    {
+        if (!HasOutput)
+        {
+            return;
+        }
+        await JS.InvokeVoidAsync("pomiMsx.downloadSc2", OutputCanvas, "msx_screen2.sc2");
+    }
+
+    private async Task<string?> LocalStorageGetAsync(string key)
+    {
+        return await JS.InvokeAsync<string?>("pomiStorage.get", key);
+    }
+
+    private async Task LocalStorageSetAsync(string key, string value)
+    {
+        await JS.InvokeVoidAsync("pomiStorage.set", key, value);
+    }
+
+    private async Task SaveMsxSettings()
+    {
+        var payload = new MsxSettings
+        {
+            OutputMode = MsxOutputMode,
+            CropPosition = MsxCropPosition,
+            InputZoom = MsxInputZoom,
+            OutputZoom = MsxOutputZoom,
+            DitherMode = MsxDitherMode,
+            DitherStrength = MsxDitherStrength,
+            Brightness = MsxBrightness,
+            Contrast = MsxContrast,
+            Saturation = MsxSaturation,
+            ShowPopupPreview = ShowPopupPreview
+        };
+        var json = System.Text.Json.JsonSerializer.Serialize(payload);
+        await LocalStorageSetAsync(MsxSettingsKey, json);
+    }
+
+    private async Task OnMsxSettingsCommitted()
+    {
+        await SaveMsxSettings();
+
+        if (!_hasPreview)
+        {
+            StatusLabel = "未反映";
+            return;
+        }
+
+        StatusLabel = SettingsChangedSinceApply() ? "未反映" : "反映済み";
+        StateHasChanged();
+
+        if (!AutoConvert || !SettingsChangedSinceApply() || IsUiLocked)
+        {
+            return;
+        }
+
+        _convertCts?.Cancel();
+        _convertCts = new CancellationTokenSource();
+        var token = _convertCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(250, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await InvokeAsync(() => StatusLabel = "変換中…");
+                    await InvokeAsync(ConvertMsx);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+            }
+        }, token);
+    }
+
+    private async Task OnAutoConvertToggled()
+    {
+        await SaveMsxSettings();
+
+        if (AutoConvert && _hasPreview && SettingsChangedSinceApply())
+        {
+            await ConvertMsx();
+            return;
+        }
+
+        if (!_hasPreview)
+        {
+            StatusLabel = "未反映";
+            return;
+        }
+
+        StatusLabel = SettingsChangedSinceApply() ? "未反映" : "反映済み";
+    }
+
+
+    private async Task OnSliderCommit()
+    {
+        await JS.InvokeVoidAsync("pomiMsx.hideSliderPopup");
+        await OnMsxSettingsCommitted();
+    }
+
+    private async Task OnSliderCancel()
+    {
+        await JS.InvokeVoidAsync("pomiMsx.hideSliderPopup");
+    }
+
+    private async Task OnSliderInputDither()
+    {
+        if (IsUiLocked)
+        {
+            return;
+        }
+        _lastSliderRef = DitherStrengthRef;
+        StatusLabel = "調整中";
+        await JS.InvokeVoidAsync("pomiMsx.showSliderPopup", DitherStrengthRef, $"{MsxDitherStrength}%", OutputCanvas, ShowPopupPreview);
+    }
+
+    private async Task OnSliderInputCrop()
+    {
+        if (IsUiLocked)
+        {
+            return;
+        }
+        _lastSliderRef = CropPositionRef;
+        StatusLabel = "調整中";
+        await JS.InvokeVoidAsync("pomiMsx.showSliderPopup", CropPositionRef, $"{MsxCropPosition}%", OutputCanvas, ShowPopupPreview);
+    }
+
+    private async Task OnSliderInputBrightness()
+    {
+        if (IsUiLocked)
+        {
+            return;
+        }
+        _lastSliderRef = BrightnessRef;
+        StatusLabel = "調整中";
+        await JS.InvokeVoidAsync("pomiMsx.showSliderPopup", BrightnessRef, $"{MsxBrightness}", OutputCanvas, ShowPopupPreview);
+    }
+
+    private async Task OnSliderInputContrast()
+    {
+        if (IsUiLocked)
+        {
+            return;
+        }
+        _lastSliderRef = ContrastRef;
+        StatusLabel = "調整中";
+        await JS.InvokeVoidAsync("pomiMsx.showSliderPopup", ContrastRef, $"{MsxContrast}", OutputCanvas, ShowPopupPreview);
+    }
+
+    private async Task OnSliderInputSaturation()
+    {
+        if (IsUiLocked)
+        {
+            return;
+        }
+        _lastSliderRef = SaturationRef;
+        StatusLabel = "調整中";
+        await JS.InvokeVoidAsync("pomiMsx.showSliderPopup", SaturationRef, $"{MsxSaturation}", OutputCanvas, ShowPopupPreview);
+    }
+
+    private async Task OnInputZoomChanged()
+    {
+        await SaveMsxSettings();
+        await ApplyInputZoom();
+    }
+
+    private async Task OnOutputZoomChanged()
+    {
+        await SaveMsxSettings();
+        await ApplyOutputZoom();
+    }
+
+    private async Task ApplyZooms()
+    {
+        await ApplyInputZoom();
+        await ApplyOutputZoom();
+    }
+
+    private async Task ApplyInputZoom()
+    {
+        await JS.InvokeVoidAsync("pomiMsx.updateInputZoom", InputPreviewImgRef, InputPreviewFrameRef, MsxInputZoom);
+    }
+
+    private async Task ApplyOutputZoom()
+    {
+        await JS.InvokeVoidAsync("pomiMsx.updateOutputZoom", OutputCanvas, OutputCanvasWrapperRef, MsxOutputZoom);
+    }
+
+    private bool SettingsChangedSinceApply()
+    {
+        var current = CaptureSettings();
+        return !current.Equals(_lastAppliedSettings);
+    }
+
+    private MsxSettingsSnapshot CaptureSettings()
+    {
+        return new MsxSettingsSnapshot
+        {
+            OutputMode = MsxOutputMode,
+            CropPosition = MsxCropPosition,
+            DitherMode = MsxDitherMode,
+            DitherStrength = MsxDitherStrength,
+            Brightness = MsxBrightness,
+            Contrast = MsxContrast,
+            Saturation = MsxSaturation
+        };
+    }
+
+    private async Task LoadMsxSettings()
+    {
+        var json = await LocalStorageGetAsync(MsxSettingsKey);
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return;
+        }
+
+        try
+        {
+            var payload = System.Text.Json.JsonSerializer.Deserialize<MsxSettings>(json);
+            if (payload == null)
+            {
+                return;
+            }
+
+            MsxOutputMode = payload.OutputMode ?? MsxOutputMode;
+            MsxCropPosition = payload.CropPosition == 0 ? MsxCropPosition : payload.CropPosition;
+            MsxInputZoom = string.IsNullOrWhiteSpace(payload.InputZoom) ? MsxInputZoom : payload.InputZoom;
+            MsxOutputZoom = string.IsNullOrWhiteSpace(payload.OutputZoom) ? MsxOutputZoom : payload.OutputZoom;
+            MsxDitherMode = payload.DitherMode ?? MsxDitherMode;
+            MsxDitherStrength = payload.DitherStrength;
+            MsxBrightness = payload.Brightness;
+            MsxContrast = payload.Contrast;
+            MsxSaturation = payload.Saturation;
+            ShowPopupPreview = payload.ShowPopupPreview;
+        }
+        catch
+        {
+        }
+    }
+
+    private class MsxSettings
+    {
+        public string? OutputMode { get; set; }
+        public int CropPosition { get; set; }
+        public string? InputZoom { get; set; }
+        public string? OutputZoom { get; set; }
+        public string? DitherMode { get; set; }
+        public int DitherStrength { get; set; }
+        public int Brightness { get; set; }
+        public int Contrast { get; set; }
+        public int Saturation { get; set; }
+        public bool ShowPopupPreview { get; set; }
+    }
+
+    private class MsxSettingsSnapshot
+    {
+        public string? OutputMode { get; set; }
+        public int CropPosition { get; set; }
+        public string? DitherMode { get; set; }
+        public int DitherStrength { get; set; }
+        public int Brightness { get; set; }
+        public int Contrast { get; set; }
+        public int Saturation { get; set; }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is not MsxSettingsSnapshot other)
+            {
+                return false;
+            }
+            return DitherMode == other.DitherMode
+                && OutputMode == other.OutputMode
+                && CropPosition == other.CropPosition
+                && DitherStrength == other.DitherStrength
+                && Brightness == other.Brightness
+                && Contrast == other.Contrast
+                && Saturation == other.Saturation;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(OutputMode, CropPosition, DitherMode, DitherStrength, Brightness, Contrast, Saturation);
+        }
+    }
+
+    private long FileSizeKb => (FileSizeBytes + 1023) / 1024;
+
+    public record TargetInfo(string Code, string Name, string Description);
+}
