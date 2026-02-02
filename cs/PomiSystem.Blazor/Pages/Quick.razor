@@ -682,6 +682,7 @@
             _shouldRenderX1Preview = false;
             X1InputInfo = await JS.InvokeAsync<string?>("pomiX1.drawPreview", X1InputPreviewCanvasRef, X1PreviewDataUrl, X1OutputMode, X1CropPosition);
             await ApplyX1Zooms();
+            await ApplyX1InputZoom(); // ズーム再適用
             StateHasChanged();
         }
     }
