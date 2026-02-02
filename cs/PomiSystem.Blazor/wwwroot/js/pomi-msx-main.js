@@ -157,6 +157,13 @@ window.pomiMsx = {
         const naturalW = img.naturalWidth || img.width;
         const naturalH = img.naturalHeight || img.height;
         if (!naturalW || !naturalH) {
+            if (!img._pomiZoomHooked) {
+                img._pomiZoomHooked = true;
+                img.addEventListener('load', () => {
+                    img._pomiZoomHooked = false;
+                    window.pomiMsx.updateInputZoom(img, wrapper, zoom);
+                }, { once: true });
+            }
             return;
         }
         const wrapperWidth = wrapper.clientWidth;
@@ -201,6 +208,22 @@ window.pomiMsx = {
         window.pomiMsx._zoomState.outputWrapper = wrapper;
         window.pomiMsx._zoomState.outputZoom = zoom;
     },
+    updatePreviewZoom: (canvas, wrapper, zoom) => {
+        if (!canvas || !wrapper) {
+            return;
+        }
+        window.pomiMsx.updateOutputZoom(canvas, wrapper, zoom);
+        const zoomValue = zoom === 'fit' ? 'fit' : parseFloat(zoom);
+        if (zoomValue === 'fit' || Number.isNaN(zoomValue)) {
+            wrapper.style.width = '';
+            wrapper.style.height = '';
+            return;
+        }
+        const baseW = canvas.width;
+        const baseH = canvas.height;
+        wrapper.style.width = Math.floor(baseW * zoomValue) + 'px';
+        wrapper.style.height = Math.floor(baseH * zoomValue) + 'px';
+    },
     _ensurePopup: () => {
         if (window.pomiMsx._popupEl) {
             return window.pomiMsx._popupEl;
@@ -243,17 +266,18 @@ window.pomiMsx = {
         return window.pomiMsxSc2.downloadSc2(canvas, filename);
     },
     _draw: async (canvas, dataUrl, smooth, outputMode, cropPosition) => {
-        if (!window.pomiImage || !window.pomiImage.drawToCanvas) {
+        if (!window.pomiImage || !window.pomiImage.buildResizeRequest || !window.pomiImage.drawToCanvasRequest) {
             console.error('[pomiMsx] pomiImage module is missing.');
             alert('必要なモジュールの読み込みに失敗しました。ページを再読み込みしてください。');
             return null;
         }
-        const result = await window.pomiImage.drawToCanvas(canvas, dataUrl, {
+        const request = window.pomiImage.buildResizeRequest(canvas, dataUrl, {
             smooth: !!smooth,
             outputMode: outputMode || 'msx',
             cropPosition: cropPosition || 50,
             fillStyle: '#0b0f12'
         });
+        const result = await window.pomiImage.drawToCanvasRequest(request);
         if (!result) {
             return null;
         }
@@ -271,18 +295,19 @@ window.pomiMsx = {
             return null;
         }
 
-        if (!window.pomiImage || !window.pomiImage.drawToCanvas) {
+        if (!window.pomiImage || !window.pomiImage.buildResizeRequest || !window.pomiImage.drawToCanvasRequest) {
             console.error('[pomiMsx] pomiImage module is missing.');
             alert('必要なモジュールの読み込みに失敗しました。ページを再読み込みしてください。');
             return null;
         }
         const work = document.createElement('canvas');
-        const result = await window.pomiImage.drawToCanvas(work, dataUrl, {
+        const request = window.pomiImage.buildResizeRequest(work, dataUrl, {
             smooth: true,
             outputMode: outputMode || 'msx',
             cropPosition: cropPosition || 50,
             fillStyle: '#000'
         });
+        const result = await window.pomiImage.drawToCanvasRequest(request);
         if (!result) {
             return null;
         }
@@ -309,12 +334,12 @@ window.pomiMsx = {
         const nearestIndex = window.pomiPalette.nearestIndex;
         const chooseLineColors = window.pomiPalette.chooseLineColors;
 
-        const strength = Math.max(0, Math.min(100, ditherStrength)) / 100;
-        if (!window.pomiDither || !window.pomiDither.getStripeBias || !window.pomiDither.isOrderedMode || !window.pomiDither.isErrorMode || !window.pomiDither.getOrderedThreshold || !window.pomiDither.luminance || !window.pomiDither.applyErrorDiffusion) {
+        if (!window.pomiDither || !window.pomiDither.getStripeBias || !window.pomiDither.normalizeStrength || !window.pomiDither.initErrorBuffers || !window.pomiDither.isOrderedMode || !window.pomiDither.isErrorMode || !window.pomiDither.getOrderedThreshold || !window.pomiDither.luminance || !window.pomiDither.applyErrorDiffusion) {
             console.error('[pomiMsx] pomiDither module is missing.');
             alert('必要なモジュールの読み込みに失敗しました。ページを再読み込みしてください。');
             return null;
         }
+        const strength = window.pomiDither.normalizeStrength(ditherStrength);
         const stripeBias = window.pomiDither.getStripeBias(ditherMode, strength);
 
         const isOrderedMode = window.pomiDither.isOrderedMode;
@@ -322,19 +347,12 @@ window.pomiMsx = {
         const getOrderedThreshold = window.pomiDither.getOrderedThreshold;
         const luminance = window.pomiDither.luminance;
         const applyErrorDiffusion = window.pomiDither.applyErrorDiffusion;
+        const initErrorBuffers = window.pomiDither.initErrorBuffers;
 
-        const workR = isErrorMode(ditherMode) ? new Float32Array(targetW * targetH) : null;
-        const workG = isErrorMode(ditherMode) ? new Float32Array(targetW * targetH) : null;
-        const workB = isErrorMode(ditherMode) ? new Float32Array(targetW * targetH) : null;
-
-        if (workR) {
-            for (let i = 0; i < targetW * targetH; i++) {
-                const idx = i * 4;
-                workR[i] = data[idx];
-                workG[i] = data[idx + 1];
-                workB[i] = data[idx + 2];
-            }
-        }
+        const buffers = initErrorBuffers(ditherMode, data, targetW, targetH);
+        const workR = buffers.workR;
+        const workG = buffers.workG;
+        const workB = buffers.workB;
 
         for (let y = 0; y < targetH; y++) {
             const rowIndex = y * targetW * 4;

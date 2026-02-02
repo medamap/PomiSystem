@@ -1,4 +1,15 @@
 window.pomiImage = {
+    buildResizeRequest: (canvas, dataUrl, options) => {
+        const opts = options || {};
+        return {
+            canvas,
+            dataUrl,
+            outputMode: opts.outputMode || 'msx',
+            cropPosition: typeof opts.cropPosition === 'number' ? opts.cropPosition : 50,
+            smooth: !!opts.smooth,
+            fillStyle: opts.fillStyle || ''
+        };
+    },
     calculateDimensions: (srcWidth, srcHeight, mode, cropPosition) => {
         if (!srcWidth || !srcHeight) {
             return {
@@ -18,6 +29,9 @@ window.pomiImage = {
             msx: { w: 256, h: 192 },
             msx2: { w: 512, h: 384 },
             msx4: { w: 1024, h: 768 },
+            x1: { w: 320, h: 200 },
+            x1x2: { w: 640, h: 400 },
+            x1x4: { w: 1280, h: 800 },
             qvga: { w: 320, h: 240 },
             vga: { w: 640, h: 480 },
             svga: { w: 800, h: 600 },
@@ -35,15 +49,17 @@ window.pomiImage = {
         if (resolutions[mode]) {
             width = resolutions[mode].w;
             height = resolutions[mode].h;
-        } else if (mode === 'auto' || mode === 'autox2' || mode === 'autox4') {
-            const multiplier = mode === 'autox4' ? 4 : (mode === 'autox2' ? 2 : 1);
-            const baseSize = 192 * multiplier;
+        } else if (mode === 'auto' || mode === 'autox2' || mode === 'autox4' || mode === 'x1auto' || mode === 'x1autox2' || mode === 'x1autox4') {
+            const isX1Auto = mode === 'x1auto' || mode === 'x1autox2' || mode === 'x1autox4';
+            const multiplier = mode.endsWith('x4') ? 4 : (mode.endsWith('x2') ? 2 : 1);
+            const baseHeight = (isX1Auto ? 200 : 192) * multiplier;
+            const baseWidth = (isX1Auto ? 320 : 256) * multiplier;
             const aspect = srcWidth / srcHeight;
             if (aspect >= 1) {
-                height = baseSize;
+                height = baseHeight;
                 width = Math.round(height * aspect);
             } else {
-                width = Math.round(baseSize * (256 / 192));
+                width = Math.round(baseWidth);
                 height = Math.round(width / aspect);
             }
             width = Math.floor(width / 8) * 8;
@@ -96,30 +112,30 @@ window.pomiImage = {
         img.onerror = () => reject(new Error('Image load failed'));
         img.src = dataUrl;
     }),
-    drawToCanvas: async (canvas, dataUrl, options) => {
-        if (!canvas || !dataUrl) {
+    drawToCanvasRequest: async (request) => {
+        if (!request || !request.canvas || !request.dataUrl) {
             return null;
         }
+        const canvas = request.canvas;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
             return null;
         }
-        const opts = options || {};
-        const img = await window.pomiImage.loadImage(dataUrl);
+        const img = await window.pomiImage.loadImage(request.dataUrl);
         const srcW = img.naturalWidth || img.width;
         const srcH = img.naturalHeight || img.height;
-        const dims = window.pomiImage.calculateDimensions(srcW, srcH, opts.outputMode || 'msx', opts.cropPosition || 50);
+        const dims = window.pomiImage.calculateDimensions(srcW, srcH, request.outputMode || 'msx', request.cropPosition || 50);
         const targetW = dims.width;
         const targetH = dims.height;
 
         canvas.width = targetW;
         canvas.height = targetH;
         ctx.clearRect(0, 0, targetW, targetH);
-        if (opts.fillStyle) {
-            ctx.fillStyle = opts.fillStyle;
+        if (request.fillStyle) {
+            ctx.fillStyle = request.fillStyle;
             ctx.fillRect(0, 0, targetW, targetH);
         }
-        ctx.imageSmoothingEnabled = !!opts.smooth;
+        ctx.imageSmoothingEnabled = !!request.smooth;
         ctx.drawImage(
             img,
             dims.cropX,
@@ -133,6 +149,7 @@ window.pomiImage = {
         );
 
         return {
+            request,
             img,
             dims,
             srcW,
@@ -141,5 +158,9 @@ window.pomiImage = {
             targetH,
             ctx
         };
+    },
+    drawToCanvas: async (canvas, dataUrl, options) => {
+        const request = window.pomiImage.buildResizeRequest(canvas, dataUrl, options);
+        return window.pomiImage.drawToCanvasRequest(request);
     }
 };

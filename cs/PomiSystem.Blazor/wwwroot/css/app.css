@@ -523,6 +523,21 @@ body.env-develop .env-label.env-develop {
     color: var(--muted);
 }
 
+.quick-log {
+    width: 100%;
+    min-height: 160px;
+    margin-top: 12px;
+    background: rgba(10, 12, 16, 0.9);
+    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    resize: vertical;
+    font-family: "Consolas", "Courier New", monospace;
+}
+
 .quick-upload {
     margin-top: 14px;
     display: flex;
@@ -569,6 +584,7 @@ body.env-develop .env-label.env-develop {
     gap: 10px;
     color: var(--muted);
     font-size: 0.85rem;
+    min-width: 320px;
 }
 
 .quick-option select {
@@ -587,6 +603,8 @@ body.env-develop .env-label.env-develop {
 .quick-option-value {
     color: var(--accent-2);
     font-variant-numeric: tabular-nums;
+    min-width: 48px;
+    text-align: right;
 }
 
 .quick-toggle {

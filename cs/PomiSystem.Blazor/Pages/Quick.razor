@@ -100,10 +100,10 @@
                             </optgroup>
                         </select>
                     </label>
-                    <label class="quick-option">
-                        トリミング位置
-                        <input type="range"
-                               min="25"
+                <label class="quick-option">
+                    トリミング位置
+                    <input type="range"
+                           min="25"
                                max="75"
                                step="1"
                                @bind-value="MsxCropPosition"
@@ -272,9 +272,196 @@
                 </div>
             </div>
         }
+        else if (SelectedTarget == "x1")
+        {
+            <div class="quick-stage">
+                <div class="quick-stage-title">X1 PCG 変換（準備中）</div>
+                <p>まずは画像を読み込んでプレビューを確認する。</p>
+                <div class="quick-upload">
+                    <label class="quick-upload-label">
+                        画像を選択
+                        <InputFile OnChange="OnFileSelectedX1" accept="image/*" class="quick-upload-input" />
+                    </label>
+                    <div class="quick-upload-meta">
+                        @if (!string.IsNullOrWhiteSpace(X1FileName))
+                        {
+                            <span>@X1FileName (@X1FileSizeKb KB)</span>
+                        }
+                        else
+                        {
+                            <span>未選択</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="quick-options">
+                    <label class="quick-option">
+                        出力サイズ
+                        <select @bind="X1OutputMode" @bind:after="OnX1SettingsCommitted">
+                            <optgroup label="X1turbo系">
+                                <option value="x1">X1turbo（320×200）</option>
+                                <option value="x1x2">X1turbo ×2（640×400）</option>
+                                <option value="x1x4">X1turbo ×4（1280×800）</option>
+                            </optgroup>
+                            <optgroup label="オート（アスペクト比維持）">
+                                <option value="x1auto">オート</option>
+                                <option value="x1autox2">オート ×2</option>
+                                <option value="x1autox4">オート ×4</option>
+                            </optgroup>
+                        </select>
+                    </label>
+                    <label class="quick-option">
+                        トリミング位置
+                        <input type="range"
+                               min="25"
+                               max="75"
+                               step="1"
+                               @bind-value="X1CropPosition"
+                               @bind-value:event="oninput"
+                               @bind-value:after="OnX1SettingsCommitted"
+                               @ref="X1CropPositionRef" />
+                    <span class="quick-option-value">@X1CropPosition%</span>
+                </label>
+                <label class="quick-option">
+                    明るさ
+                    <input type="range"
+                           min="-100"
+                           max="100"
+                           step="1"
+                           @bind-value="X1Brightness"
+                           @bind-value:event="oninput"
+                           @bind-value:after="OnX1SettingsCommitted" />
+                    <span class="quick-option-value">@X1Brightness</span>
+                </label>
+                <label class="quick-option">
+                    コントラスト
+                    <input type="range"
+                           min="-100"
+                           max="100"
+                           step="1"
+                           @bind-value="X1Contrast"
+                           @bind-value:event="oninput"
+                           @bind-value:after="OnX1SettingsCommitted" />
+                    <span class="quick-option-value">@X1Contrast</span>
+                </label>
+                <label class="quick-option">
+                    彩度
+                    <input type="range"
+                           min="-100"
+                           max="100"
+                           step="1"
+                           @bind-value="X1Saturation"
+                           @bind-value:event="oninput"
+                           @bind-value:after="OnX1SettingsCommitted" />
+                    <span class="quick-option-value">@X1Saturation</span>
+                </label>
+                      <label class="quick-option">
+                          ディザ
+                          <select @bind="X1DitherMode" @bind:after="OnX1SettingsCommitted">
+                              <option value="none">なし（最近傍色）</option>
+                              <option value="bayer2">Ordered Dither (Bayer 2×2)</option>
+                              <option value="bayer4">Ordered Dither (Bayer 4×4)</option>
+                              <option value="floyd">Floyd-Steinberg</option>
+                              <option value="atkinson">Atkinson</option>
+                          </select>
+                      </label>
+                      <label class="quick-option quick-toggle">
+                          <input type="checkbox" @bind="X1AutoConvert" @bind:after="OnX1AutoConvertToggled" disabled="@IsUiLocked" />
+                          <span>自動更新</span>
+                      </label>
+                      <label class="quick-option quick-toggle">
+                          <input type="checkbox" @bind="X1HueWeight" @bind:after="OnX1SettingsCommitted" />
+                          <span>色相重視</span>
+                      </label>
+                    <label class="quick-option">
+                        色相重視度
+                        <input type="range"
+                               min="0"
+                               max="100"
+                               step="5"
+                               @bind-value="X1HueWeightAmount"
+                               @bind-value:event="oninput"
+                               @bind-value:after="OnX1SettingsCommitted" />
+                        <span class="quick-option-value">@X1HueWeightAmount%</span>
+                    </label>
+                </div>
+
+                <div class="quick-preview">
+                    <div class="quick-preview-header">
+                        <span>入力プレビュー</span>
+                        <select class="quick-zoom-select" @bind="X1InputZoom" @bind:after="OnX1InputZoomChanged">
+                            <option value="fit">Fit</option>
+                            <option value="0.125">x0.125</option>
+                            <option value="0.25">x0.25</option>
+                            <option value="0.5">x0.5</option>
+                            <option value="1">x1</option>
+                            <option value="2">x2</option>
+                            <option value="4">x4</option>
+                        </select>
+                    </div>
+                    <div class="quick-preview-frame" @ref="X1InputPreviewFrameRef">
+                        @if (!string.IsNullOrWhiteSpace(X1PreviewDataUrl))
+                        {
+                            <canvas @ref="X1InputPreviewCanvasRef"></canvas>
+                        }
+                        else
+                        {
+                            <div class="quick-preview-placeholder">プレビュー待機中</div>
+                        }
+                    </div>
+                </div>
+
+                <div class="quick-canvas">
+                    <div class="quick-canvas-header">
+                        <span>X1出力プレビュー</span>
+                        <select class="quick-zoom-select" @bind="X1OutputZoom" @bind:after="OnX1OutputZoomChanged">
+                            <option value="fit">Fit</option>
+                            <option value="0.125">x0.125</option>
+                            <option value="0.25">x0.25</option>
+                            <option value="0.5">x0.5</option>
+                            <option value="1">x1</option>
+                            <option value="2">x2</option>
+                            <option value="4">x4</option>
+                        </select>
+                        <span class="quick-canvas-meta">@X1OutputInfo</span>
+                    </div>
+                    <div class="quick-canvas-body" @ref="X1OutputCanvasWrapperRef">
+                        <canvas @ref="X1OutputCanvas" width="320" height="200"></canvas>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="quick-action @(CanConvertX1 ? "ready" : string.Empty)" disabled="@(!CanConvertX1)" @onclick="ConvertX1">
+                        手動変換
+                    </button>
+                    <button class="quick-action secondary" disabled="@(!X1HasOutput)" @onclick="DownloadX1Png">
+                        PNG保存
+                    </button>
+                </div>
+            </div>
+        }
         else
         {
             <p>選択された機種の変換UIは未実装。</p>
+        }
+    </section>
+
+    <section class="quick-panel">
+        <div class="quick-panel-header">
+            <h2>エラーログ</h2>
+            <p>iPadなどの環境でエラー内容を確認するための簡易ログ。</p>
+        </div>
+        <div class="quick-actions">
+            <button class="quick-action secondary" @onclick="RefreshLog">ログ表示</button>
+            <button class="quick-action secondary" @onclick="ClearLog">ログ消去</button>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(LogText))
+        {
+            <textarea class="quick-log" readonly>@LogText</textarea>
+        }
+        else
+        {
+            <div class="quick-note">ログはまだありません。</div>
         }
     </section>
 </div>
@@ -290,8 +477,11 @@
     private string? ErrorMessage;
     private long FileSizeBytes;
     private ElementReference OutputCanvas;
+    private ElementReference X1OutputCanvas;
     private bool _shouldRenderPreview;
     private bool _hasPreview;
+    private bool _shouldRenderX1Preview;
+    private bool _hasX1Preview;
     private string MsxOutputMode = "msx";
     private int MsxCropPosition = 50;
     private string MsxInputZoom = "fit";
@@ -318,14 +508,39 @@
     private ElementReference InputPreviewImgRef;
     private ElementReference InputPreviewFrameRef;
     private ElementReference OutputCanvasWrapperRef;
+    private ElementReference X1InputPreviewCanvasRef;
+    private ElementReference X1InputPreviewFrameRef;
+    private ElementReference X1OutputCanvasWrapperRef;
+    private ElementReference X1CropPositionRef;
+
+    private string? X1PreviewDataUrl;
+    private string? X1OutputInfo;
+    private string? X1InputInfo;
+    private string? X1FileName;
+    private long X1FileSizeBytes;
+    private bool X1HasOutput;
+    private string X1OutputMode = "x1";
+    private int X1CropPosition = 50;
+    private string X1InputZoom = "fit";
+    private string X1OutputZoom = "fit";
+    private string? LogText;
+    private string X1DitherMode = "bayer4";
+    private bool X1HueWeight = true;
+    private int X1HueWeightAmount = 50;
+    private int X1Brightness = 0;
+    private int X1Contrast = 0;
+    private int X1Saturation = 0;
+    private bool X1AutoConvert;
 
     private bool CanConvert => SelectedTarget == "msx" && _hasPreview;
     private bool IsDitherStrengthLocked => IsUiLocked || !(MsxDitherMode?.StartsWith("stripe") ?? false);
     private bool CanDownloadScr => HasOutput && MsxOutputMode == "msx";
+    private bool CanConvertX1 => SelectedTarget == "x1" && _hasX1Preview;
 
     private readonly List<TargetInfo> Targets = new()
     {
-        new("msx", "MSX Screen 2", "8×1ライン2色制約、256×192")
+        new("msx", "MSX Screen 2", "8×1ライン2色制約、256×192"),
+        new("x1", "X1 PCG", "デジタル8色、320×200")
     };
 
     protected override async Task OnInitializedAsync()
@@ -380,6 +595,46 @@
         }
     }
 
+    private async Task OnFileSelectedX1(InputFileChangeEventArgs e)
+    {
+        X1PreviewDataUrl = null;
+        X1OutputInfo = null;
+        X1FileName = null;
+        X1FileSizeBytes = 0;
+        X1HasOutput = false;
+
+        var file = e.File;
+        if (file == null)
+        {
+            return;
+        }
+
+        if (file.Size > MaxFileSize)
+        {
+            return;
+        }
+
+        try
+        {
+            X1FileName = file.Name;
+            X1FileSizeBytes = file.Size;
+            await using var stream = file.OpenReadStream(MaxFileSize);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var base64 = Convert.ToBase64String(ms.ToArray());
+            X1PreviewDataUrl = $"data:{file.ContentType};base64,{base64}";
+            _shouldRenderX1Preview = true;
+            _hasX1Preview = true;
+            if (X1AutoConvert)
+            {
+                await ConvertX1();
+            }
+        }
+        catch
+        {
+        }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_shouldRenderPreview && !string.IsNullOrWhiteSpace(PreviewDataUrl))
@@ -388,6 +643,14 @@
             var result = await JS.InvokeAsync<string?>("pomiMsx.drawPreview", OutputCanvas, PreviewDataUrl, MsxOutputMode, MsxCropPosition);
             OutputInfo = result;
             await ApplyZooms();
+            StateHasChanged();
+        }
+
+        if (_shouldRenderX1Preview && !string.IsNullOrWhiteSpace(X1PreviewDataUrl))
+        {
+            _shouldRenderX1Preview = false;
+            X1InputInfo = await JS.InvokeAsync<string?>("pomiX1.drawPreview", X1InputPreviewCanvasRef, X1PreviewDataUrl, X1OutputMode, X1CropPosition);
+            await ApplyX1Zooms();
             StateHasChanged();
         }
     }
@@ -431,6 +694,37 @@
         StateHasChanged();
     }
 
+    private async Task ConvertX1()
+    {
+        if (string.IsNullOrWhiteSpace(X1PreviewDataUrl))
+        {
+            return;
+        }
+
+        try
+        {
+            X1OutputInfo = await JS.InvokeAsync<string?>(
+                "pomiX1.drawOutput",
+                X1OutputCanvas,
+                X1PreviewDataUrl,
+                X1OutputMode,
+                X1CropPosition,
+                X1DitherMode,
+                X1HueWeight,
+                X1HueWeightAmount,
+                X1Brightness,
+                X1Contrast,
+                X1Saturation);
+            X1HasOutput = !string.IsNullOrWhiteSpace(X1OutputInfo);
+            await ApplyX1OutputZoom();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await SafeLogError("X1 Convert failed", ex.ToString());
+        }
+    }
+
     private async Task DownloadPng()
     {
         if (!HasOutput)
@@ -447,6 +741,63 @@
             return;
         }
         await JS.InvokeVoidAsync("pomiMsx.downloadSc2", OutputCanvas, "msx_screen2.sc2");
+    }
+
+    private async Task DownloadX1Png()
+    {
+        if (!X1HasOutput)
+        {
+            return;
+        }
+        await JS.InvokeVoidAsync("pomiMsx.downloadPng", X1OutputCanvas, "x1_output.png");
+    }
+
+    private async Task RefreshLog()
+    {
+        try
+        {
+            var ready = await JS.InvokeAsync<bool>("pomiLogReady");
+            if (!ready)
+            {
+                LogText = "ログ機能が未初期化。リロード後に再試行してください。";
+                return;
+            }
+            LogText = await JS.InvokeAsync<string?>("pomiLog.getText");
+        }
+        catch (Exception ex)
+        {
+            LogText = $"ログ取得に失敗: {ex.Message}";
+        }
+    }
+
+    private async Task ClearLog()
+    {
+        try
+        {
+            var ready = await JS.InvokeAsync<bool>("pomiLogReady");
+            if (!ready)
+            {
+                LogText = "ログ機能が未初期化。リロード後に再試行してください。";
+                return;
+            }
+            await JS.InvokeVoidAsync("pomiLog.clear");
+            LogText = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            LogText = $"ログ消去に失敗: {ex.Message}";
+        }
+    }
+
+    private async Task SafeLogError(string message, string detail)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("pomiLog.error", message, detail);
+        }
+        catch
+        {
+        }
     }
 
     private async Task<string?> LocalStorageGetAsync(string key)
@@ -631,6 +982,53 @@
         await JS.InvokeVoidAsync("pomiMsx.updateOutputZoom", OutputCanvas, OutputCanvasWrapperRef, MsxOutputZoom);
     }
 
+    private async Task OnX1SettingsCommitted()
+    {
+        if (!_hasX1Preview)
+        {
+            return;
+        }
+        if (!X1AutoConvert)
+        {
+            return;
+        }
+        await ConvertX1();
+    }
+
+    private async Task OnX1AutoConvertToggled()
+    {
+        if (X1AutoConvert && _hasX1Preview)
+        {
+            await ConvertX1();
+        }
+    }
+
+    private async Task OnX1InputZoomChanged()
+    {
+        await ApplyX1InputZoom();
+    }
+
+    private async Task OnX1OutputZoomChanged()
+    {
+        await ApplyX1OutputZoom();
+    }
+
+    private async Task ApplyX1Zooms()
+    {
+        await ApplyX1InputZoom();
+        await ApplyX1OutputZoom();
+    }
+
+    private async Task ApplyX1InputZoom()
+    {
+        await JS.InvokeVoidAsync("pomiMsx.updatePreviewZoom", X1InputPreviewCanvasRef, X1InputPreviewFrameRef, X1InputZoom);
+    }
+
+    private async Task ApplyX1OutputZoom()
+    {
+        await JS.InvokeVoidAsync("pomiMsx.updateOutputZoom", X1OutputCanvas, X1OutputCanvasWrapperRef, X1OutputZoom);
+    }
+
     private bool SettingsChangedSinceApply()
     {
         var current = CaptureSettings();
@@ -729,6 +1127,7 @@
     }
 
     private long FileSizeKb => (FileSizeBytes + 1023) / 1024;
+    private long X1FileSizeKb => (X1FileSizeBytes + 1023) / 1024;
 
     public record TargetInfo(string Code, string Name, string Description);
 }

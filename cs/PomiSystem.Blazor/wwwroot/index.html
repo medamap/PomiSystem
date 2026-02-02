@@ -6,16 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PomiSystem.Blazor</title>
     <base href="./" />
-    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css?v=__BUILD_ID__" />
     <link rel="stylesheet" href="css/app.css?v=__BUILD_ID__" />
+    <link rel="stylesheet" href="PomiSystem.Blazor.styles.css?v=__BUILD_ID__" />
     <link rel="icon" type="image/png" href="favicon.png?v=__BUILD_ID__" />
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=__BUILD_ID__" />
     <link rel="apple-touch-icon" href="icon-192.png?v=__BUILD_ID__" />
-    <link href="PomiSystem.Blazor.styles.css" rel="stylesheet" />
 </head>
 
 <body>
     <script>
+        (function () {
+            var path = window.location.pathname || "/";
+            var match = path.match(/\/app\/system(?:_develop|_staging)?\//);
+            if (match && match[0]) {
+                var baseTag = document.querySelector("base");
+                if (baseTag) {
+                    baseTag.setAttribute("href", match[0]);
+                }
+            }
+        })();
         (function () {
             var path = window.location.pathname || "/";
             var body = document.body;
@@ -26,6 +36,30 @@
             } else {
                 body.classList.add("env-release");
             }
+        })();
+        (function () {
+            if (window.pomiLog) {
+                return;
+            }
+            window.pomiLog = {
+                _entries: [],
+                _max: 200,
+                _push: function (level, message, detail) {
+                    var time = new Date().toISOString();
+                    var entry = "[" + time + "] [" + level + "] " + message + (detail ? " | " + detail : "");
+                    window.pomiLog._entries.push(entry);
+                    if (window.pomiLog._entries.length > window.pomiLog._max) {
+                        window.pomiLog._entries.shift();
+                    }
+                },
+                log: function (message, detail) { window.pomiLog._push("LOG", message, detail); },
+                warn: function (message, detail) { window.pomiLog._push("WARN", message, detail); },
+                error: function (message, detail) { window.pomiLog._push("ERROR", message, detail); },
+                clear: function () { window.pomiLog._entries = []; },
+                getText: function () { return window.pomiLog._entries.join("\n"); },
+                isAvailable: function () { return true; },
+                hookErrors: function () { }
+            };
         })();
     </script>
     <div id="app">
@@ -41,15 +75,74 @@
         <a href="" class="reload">Reload</a>
         <a class="dismiss">🗙</a>
     </div>
-    <script src="js/build-info.js?v=__BUILD_ID__"></script>
-    <script src="js/pomi-image.js?v=__BUILD_ID__"></script>
-    <script src="js/pomi-color.js?v=__BUILD_ID__"></script>
-    <script src="js/pomi-dither.js?v=__BUILD_ID__"></script>
-    <script src="js/pomi-palette.js?v=__BUILD_ID__"></script>
-    <script src="js/pomi-x1.js?v=__BUILD_ID__"></script>
-    <script src="js/pomi-msx-sc2-exporter.js?v=__BUILD_ID__"></script>
-    <script src="js/pomi-msx-main.js?v=__BUILD_ID__"></script>
-    <script src="_framework/blazor.webassembly.js?v=__BUILD_ID__"></script>
+    <script>
+        (function () {
+            var params = new URLSearchParams(window.location.search || "");
+            var nocache = params.has("nocache");
+            var buildId = "__BUILD_ID__";
+            var stamp = nocache ? String(Date.now()) : buildId;
+            var withStamp = function (url) {
+                return url + (url.indexOf("?") === -1 ? "?v=" : "&v=") + stamp;
+            };
+            var loadScript = function (url) {
+                return new Promise(function (resolve, reject) {
+                    var script = document.createElement("script");
+                    script.src = withStamp(url);
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.body.appendChild(script);
+                });
+            };
+            var ensureCss = function () {
+                var cssList = [
+                    "css/bootstrap/bootstrap.min.css",
+                    "css/app.css",
+                    "PomiSystem.Blazor.styles.css"
+                ];
+                cssList.forEach(function (href) {
+                    var link = document.createElement("link");
+                    link.rel = "stylesheet";
+                    link.href = withStamp(href);
+                    document.head.appendChild(link);
+                });
+                var icons = [
+                    { rel: "icon", type: "image/png", href: "favicon.png" },
+                    { rel: "icon", type: "image/png", sizes: "192x192", href: "icon-192.png" },
+                    { rel: "apple-touch-icon", href: "icon-192.png" }
+                ];
+                icons.forEach(function (icon) {
+                    var link = document.createElement("link");
+                    link.rel = icon.rel;
+                    if (icon.type) link.type = icon.type;
+                    if (icon.sizes) link.sizes = icon.sizes;
+                    link.href = withStamp(icon.href);
+                    document.head.appendChild(link);
+                });
+            };
+            ensureCss();
+            loadScript("js/build-info.js")
+                .then(function () { return loadScript("js/pomi-log.js"); })
+                .then(function () { return loadScript("js/pomi-image.js"); })
+                .then(function () { return loadScript("js/pomi-color.js"); })
+                .then(function () { return loadScript("js/pomi-dither.js"); })
+                .then(function () { return loadScript("js/pomi-palette.js"); })
+                .then(function () { return loadScript("js/pomi-x1.js"); })
+                .then(function () { return loadScript("js/pomi-msx-sc2-exporter.js"); })
+                .then(function () { return loadScript("js/pomi-msx-main.js"); })
+                .then(function () {
+                    window.pomiLogReady = function () {
+                        return !!(window.pomiLog && window.pomiLog.getText);
+                    };
+                    if (window.pomiLog && window.pomiLog.hookErrors) {
+                        window.pomiLog.hookErrors();
+                    }
+                    return loadScript("_framework/blazor.webassembly.js");
+                })
+                .catch(function (err) {
+                    console.error("Asset load failed:", err);
+                });
+        })();
+    </script>
 </body>
 
 </html>

@@ -1,6 +1,10 @@
 window.pomiDither = {
     isOrderedMode: (mode) => mode === 'checker' || mode === 'bayer2' || mode === 'bayer4',
     isErrorMode: (mode) => mode === 'floyd' || mode === 'atkinson',
+    normalizeStrength: (strength) => {
+        const value = typeof strength === 'number' ? strength : 0;
+        return Math.max(0, Math.min(100, value)) / 100;
+    },
     getOrderedThreshold: (x, y, mode) => {
         if (mode === 'checker') {
             const v = (x + y) % 2;
@@ -30,6 +34,21 @@ window.pomiDither = {
         }
         const bias = mode === 'stripe_strong' ? 0.6 : 0.35;
         return bias * strength;
+    },
+    initErrorBuffers: (mode, data, targetW, targetH) => {
+        if (!window.pomiDither.isErrorMode(mode)) {
+            return { workR: null, workG: null, workB: null };
+        }
+        const workR = new Float32Array(targetW * targetH);
+        const workG = new Float32Array(targetW * targetH);
+        const workB = new Float32Array(targetW * targetH);
+        for (let i = 0; i < targetW * targetH; i++) {
+            const idx = i * 4;
+            workR[i] = data[idx];
+            workG[i] = data[idx + 1];
+            workB[i] = data[idx + 2];
+        }
+        return { workR, workG, workB };
     },
     applyErrorDiffusion: (mode, x, y, targetW, targetH, errR, errG, errB, workR, workG, workB) => {
         if (!workR || !workG || !workB) {

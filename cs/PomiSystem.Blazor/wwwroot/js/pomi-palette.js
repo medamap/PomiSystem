@@ -50,6 +50,7 @@ window.pomiPalette = {
             window.pomiPalette.defaults[name] = { startIndex: options.startIndex };
         }
     },
+    normalizeStartIndex: (startIndex) => typeof startIndex === 'number' ? startIndex : 0,
     distSq: (r, g, b, p) => {
         const dr = r - p[0];
         const dg = g - p[1];
@@ -57,7 +58,7 @@ window.pomiPalette = {
         return dr * dr + dg * dg + db * db;
     },
     nearestIndex: (r, g, b, palette, startIndex) => {
-        const start = typeof startIndex === 'number' ? startIndex : 0;
+        const start = window.pomiPalette.normalizeStartIndex(startIndex);
         let best = start;
         let bestDist = Infinity;
         for (let i = start; i < palette.length; i++) {
@@ -70,17 +71,18 @@ window.pomiPalette = {
         return best;
     },
     chooseLineColors: (data, rowIndex, startX, palette, startIndex) => {
+        const normalizedStart = window.pomiPalette.normalizeStartIndex(startIndex);
         const counts = new Map();
         for (let x = 0; x < 8; x++) {
             const idx = rowIndex + (startX + x) * 4;
             const r = data[idx];
             const g = data[idx + 1];
             const b = data[idx + 2];
-            const best = window.pomiPalette.nearestIndex(r, g, b, palette, startIndex);
+            const best = window.pomiPalette.nearestIndex(r, g, b, palette, normalizedStart);
             counts.set(best, (counts.get(best) || 0) + 1);
         }
         const sorted = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
-        const primary = sorted[0] ? sorted[0][0] : startIndex;
+        const primary = sorted[0] ? sorted[0][0] : normalizedStart;
         const secondary = sorted[1] ? sorted[1][0] : primary;
         return { primary, secondary };
     }
