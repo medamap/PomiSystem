@@ -578,6 +578,12 @@
         var fullWidthStr = await LocalStorageGetAsync("quickFullWidth");
         IsFullWidth = bool.TryParse(fullWidthStr, out var result) && result;
         await ApplyFullWidthClass(IsFullWidth);
+
+        // Pixelated設定の復元
+        MsxInputPixelated = await LocalStorageGetBoolAsync("quickMsxInputPixelated");
+        MsxOutputPixelated = await LocalStorageGetBoolAsync("quickMsxOutputPixelated");
+        X1InputPixelated = await LocalStorageGetBoolAsync("quickX1InputPixelated");
+        X1OutputPixelated = await LocalStorageGetBoolAsync("quickX1OutputPixelated");
     }
 
     private async Task SelectTarget(string code)
@@ -842,6 +848,12 @@
         await JS.InvokeVoidAsync("pomiStorage.set", key, value);
     }
 
+    private async Task<bool> LocalStorageGetBoolAsync(string key)
+    {
+        var valueStr = await LocalStorageGetAsync(key);
+        return bool.TryParse(valueStr, out var result) && result;
+    }
+
     private async Task SaveMsxSettings()
     {
         var payload = new MsxSettings
@@ -1047,21 +1059,25 @@
 
     private async Task OnToggleMsxInputPixelated()
     {
+        await LocalStorageSetAsync("quickMsxInputPixelated", MsxInputPixelated.ToString());
         await ApplyInputZoom();
     }
 
     private async Task OnToggleMsxOutputPixelated()
     {
+        await LocalStorageSetAsync("quickMsxOutputPixelated", MsxOutputPixelated.ToString());
         await ApplyOutputZoom();
     }
 
     private async Task OnToggleX1InputPixelated()
     {
+        await LocalStorageSetAsync("quickX1InputPixelated", X1InputPixelated.ToString());
         await ApplyX1InputZoom();
     }
 
     private async Task OnToggleX1OutputPixelated()
     {
+        await LocalStorageSetAsync("quickX1OutputPixelated", X1OutputPixelated.ToString());
         await ApplyX1OutputZoom();
     }
 
