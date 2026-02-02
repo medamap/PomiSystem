@@ -220,6 +220,10 @@
                             <option value="2">x2</option>
                             <option value="4">x4</option>
                         </select>
+                        <label class="quick-toggle quick-pixel-toggle">
+                            <input type="checkbox" @bind="MsxInputPixelated" @bind:after="OnToggleMsxInputPixelated" disabled="@IsUiLocked" />
+                            <span>ピクセル</span>
+                        </label>
                     </div>
                     <div class="quick-preview-frame" @ref="InputPreviewFrameRef">
                         @if (!string.IsNullOrWhiteSpace(PreviewDataUrl))
@@ -245,6 +249,10 @@
                             <option value="2">x2</option>
                             <option value="4">x4</option>
                         </select>
+                        <label class="quick-toggle quick-pixel-toggle">
+                            <input type="checkbox" @bind="MsxOutputPixelated" @bind:after="OnToggleMsxOutputPixelated" disabled="@IsUiLocked" />
+                            <span>ピクセル</span>
+                        </label>
                         <span class="quick-canvas-meta">@OutputInfo</span>
                     </div>
                     <div class="quick-status">
@@ -398,6 +406,10 @@
                             <option value="2">x2</option>
                             <option value="4">x4</option>
                         </select>
+                        <label class="quick-toggle quick-pixel-toggle">
+                            <input type="checkbox" @bind="X1InputPixelated" @bind:after="OnToggleX1InputPixelated" disabled="@IsUiLocked" />
+                            <span>ピクセル</span>
+                        </label>
                     </div>
                     <div class="quick-preview-frame" @ref="X1InputPreviewFrameRef">
                         @if (!string.IsNullOrWhiteSpace(X1PreviewDataUrl))
@@ -423,6 +435,10 @@
                             <option value="2">x2</option>
                             <option value="4">x4</option>
                         </select>
+                        <label class="quick-toggle quick-pixel-toggle">
+                            <input type="checkbox" @bind="X1OutputPixelated" @bind:after="OnToggleX1OutputPixelated" disabled="@IsUiLocked" />
+                            <span>ピクセル</span>
+                        </label>
                         <span class="quick-canvas-meta">@X1OutputInfo</span>
                     </div>
                     <div class="quick-canvas-body" @ref="X1OutputCanvasWrapperRef">
@@ -531,6 +547,10 @@
     private int X1Contrast = 0;
     private int X1Saturation = 0;
     private bool X1AutoConvert;
+    private bool MsxInputPixelated;
+    private bool MsxOutputPixelated;
+    private bool X1InputPixelated;
+    private bool X1OutputPixelated;
 
     private bool CanConvert => SelectedTarget == "msx" && _hasPreview;
     private bool IsDitherStrengthLocked => IsUiLocked || !(MsxDitherMode?.StartsWith("stripe") ?? false);
@@ -974,12 +994,12 @@
 
     private async Task ApplyInputZoom()
     {
-        await JS.InvokeVoidAsync("pomiMsx.updateInputZoom", InputPreviewImgRef, InputPreviewFrameRef, MsxInputZoom);
+        await JS.InvokeVoidAsync("pomiMsx.updateInputZoom", InputPreviewImgRef, InputPreviewFrameRef, MsxInputZoom, MsxInputPixelated);
     }
 
     private async Task ApplyOutputZoom()
     {
-        await JS.InvokeVoidAsync("pomiMsx.updateOutputZoom", OutputCanvas, OutputCanvasWrapperRef, MsxOutputZoom);
+        await JS.InvokeVoidAsync("pomiMsx.updateOutputZoom", OutputCanvas, OutputCanvasWrapperRef, MsxOutputZoom, MsxOutputPixelated);
     }
 
     private async Task OnX1SettingsCommitted()
@@ -1013,6 +1033,26 @@
         await ApplyX1OutputZoom();
     }
 
+    private async Task OnToggleMsxInputPixelated()
+    {
+        await ApplyInputZoom();
+    }
+
+    private async Task OnToggleMsxOutputPixelated()
+    {
+        await ApplyOutputZoom();
+    }
+
+    private async Task OnToggleX1InputPixelated()
+    {
+        await ApplyX1InputZoom();
+    }
+
+    private async Task OnToggleX1OutputPixelated()
+    {
+        await ApplyX1OutputZoom();
+    }
+
     private async Task ApplyX1Zooms()
     {
         await ApplyX1InputZoom();
@@ -1021,12 +1061,12 @@
 
     private async Task ApplyX1InputZoom()
     {
-        await JS.InvokeVoidAsync("pomiMsx.updatePreviewZoom", X1InputPreviewCanvasRef, X1InputPreviewFrameRef, X1InputZoom);
+        await JS.InvokeVoidAsync("pomiMsx.updatePreviewZoom", X1InputPreviewCanvasRef, X1InputPreviewFrameRef, X1InputZoom, X1InputPixelated);
     }
 
     private async Task ApplyX1OutputZoom()
     {
-        await JS.InvokeVoidAsync("pomiMsx.updateOutputZoom", X1OutputCanvas, X1OutputCanvasWrapperRef, X1OutputZoom);
+        await JS.InvokeVoidAsync("pomiMsx.updateOutputZoom", X1OutputCanvas, X1OutputCanvasWrapperRef, X1OutputZoom, X1OutputPixelated);
     }
 
     private bool SettingsChangedSinceApply()

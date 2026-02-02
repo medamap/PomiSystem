@@ -22,8 +22,12 @@ window.pomiMsx = {
         window.addEventListener('resize', () => {
             if (window.pomiMsx._zoomState) {
                 const state = window.pomiMsx._zoomState;
-                window.pomiMsx.updateInputZoom(state.inputImg, state.inputWrapper, state.inputZoom);
-                window.pomiMsx.updateOutputZoom(state.outputCanvas, state.outputWrapper, state.outputZoom);
+                window.pomiMsx.updateInputZoom(state.inputImg, state.inputWrapper, state.inputZoom, state.inputPixelated);
+                window.pomiMsx.updateOutputZoom(state.outputCanvas, state.outputWrapper, state.outputZoom, state.outputPixelated);
+                // updatePreviewZoom の呼び出しは _zoomState に inputImg (canvas) と inputWrapper (wrapper) が保存されている場合
+                if (state.inputImg instanceof HTMLCanvasElement && state.inputWrapper) { // inputImg が canvas の場合
+                    window.pomiMsx.updatePreviewZoom(state.inputImg, state.inputWrapper, state.inputZoom, state.inputPixelated);
+                }
             }
         });
         window.pomiMsx._zoomListenerAttached = true;
@@ -148,7 +152,7 @@ window.pomiMsx = {
             window.pomiMsx.hideSliderPopup();
         }, delay);
     },
-    updateInputZoom: (img, wrapper, zoom) => {
+    updateInputZoom: (img, wrapper, zoom, isPixelated) => {
         if (!img || !wrapper) {
             return;
         }
@@ -161,7 +165,7 @@ window.pomiMsx = {
                 img._pomiZoomHooked = true;
                 img.addEventListener('load', () => {
                     img._pomiZoomHooked = false;
-                    window.pomiMsx.updateInputZoom(img, wrapper, zoom);
+                    window.pomiMsx.updateInputZoom(img, wrapper, zoom, isPixelated); // recursive call updated
                 }, { once: true });
             }
             return;
@@ -178,12 +182,14 @@ window.pomiMsx = {
         }
         img.style.width = Math.floor(naturalW * scale) + 'px';
         img.style.height = Math.floor(naturalH * scale) + 'px';
+        img.style.imageRendering = isPixelated ? 'pixelated' : 'auto';
         window.pomiMsx._zoomState = window.pomiMsx._zoomState || {};
         window.pomiMsx._zoomState.inputImg = img;
         window.pomiMsx._zoomState.inputWrapper = wrapper;
         window.pomiMsx._zoomState.inputZoom = zoom;
+        window.pomiMsx._zoomState.inputPixelated = isPixelated;
     },
-    updateOutputZoom: (canvas, wrapper, zoom) => {
+    updateOutputZoom: (canvas, wrapper, zoom, isPixelated) => {
         if (!canvas || !wrapper) {
             return;
         }
@@ -203,26 +209,44 @@ window.pomiMsx = {
         }
         canvas.style.width = Math.floor(baseW * scale) + 'px';
         canvas.style.height = Math.floor(baseH * scale) + 'px';
+        canvas.style.imageRendering = isPixelated ? 'pixelated' : 'auto';
         window.pomiMsx._zoomState = window.pomiMsx._zoomState || {};
         window.pomiMsx._zoomState.outputCanvas = canvas;
         window.pomiMsx._zoomState.outputWrapper = wrapper;
         window.pomiMsx._zoomState.outputZoom = zoom;
+        window.pomiMsx._zoomState.outputPixelated = isPixelated;
     },
-    updatePreviewZoom: (canvas, wrapper, zoom) => {
+    updatePreviewZoom: (canvas, wrapper, zoom, isPixelated) => { // isPixelated パラメータを追加
         if (!canvas || !wrapper) {
             return;
         }
-        window.pomiMsx.updateOutputZoom(canvas, wrapper, zoom);
+        window.pomiMsx._ensureZoomListener();
         const zoomValue = zoom === 'fit' ? 'fit' : parseFloat(zoom);
-        if (zoomValue === 'fit' || Number.isNaN(zoomValue)) {
-            wrapper.style.width = '';
-            wrapper.style.height = '';
+        const baseW = canvas.width; // canvas の幅を使用
+        const baseH = canvas.height; // canvas の高さを使用
+        if (!baseW || !baseH) {
             return;
         }
-        const baseW = canvas.width;
-        const baseH = canvas.height;
-        wrapper.style.width = Math.floor(baseW * zoomValue) + 'px';
-        wrapper.style.height = Math.floor(baseH * zoomValue) + 'px';
+        const wrapperWidth = wrapper.clientWidth;
+        const wrapperHeight = wrapper.clientHeight;
+        let scale = 1;
+        if (zoomValue === 'fit') {
+            const scaleX = wrapperWidth / baseW;
+            const scaleY = wrapperHeight / baseH;
+            scale = Math.min(scaleX, scaleY, 1);
+        } else if (!Number.isNaN(zoomValue)) {
+            scale = zoomValue;
+        }
+        canvas.style.width = Math.floor(baseW * scale) + 'px';
+        canvas.style.height = Math.floor(baseH * scale) + 'px';
+        canvas.style.imageRendering = isPixelated ? 'pixelated' : 'auto';
+
+        // _zoomState も必要なら更新
+        window.pomiMsx._zoomState = window.pomiMsx._zoomState || {};
+        window.pomiMsx._zoomState.inputImg = canvas; // 入力プレビューなのでcanvas
+        window.pomiMsx._zoomState.inputWrapper = wrapper;
+        window.pomiMsx._zoomState.inputZoom = zoom;
+        window.pomiMsx._zoomState.inputPixelated = isPixelated;
     },
     _ensurePopup: () => {
         if (window.pomiMsx._popupEl) {
