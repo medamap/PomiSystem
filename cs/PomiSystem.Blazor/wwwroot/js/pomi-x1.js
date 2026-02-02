@@ -36,10 +36,25 @@ window.pomiX1 = {
         for (let i = 0; i < palette.length; i++) {
             const p = palette[i];
             let score = baseDist(r, g, b, p);
-            if (weight > 0) {
-                const hue = window.pomiX1._rgbToHue(p[0], p[1], p[2]);
-                const hd = window.pomiX1._hueDistance(srcHue, hue);
-                score += weight * hd * hd;
+            if (hueWeight && hueWeightAmount > 0) {
+                // targetHue を 30 に統一（設計仕様）
+                const targetHue = 30;
+
+                // 肌色距離 d = min( |h - 30|, 360 - |h - 30| )
+                // ソースピクセルの肌色距離のみで算出
+                const src_d_h = Math.abs(srcHue - targetHue);
+                const src_d = Math.min(src_d_h, 360 - src_d_h);
+
+                // 重み w = 1 - clamp(d / 40, 0, 1)
+                const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+                const src_w = 1 - clamp(src_d / 40, 0, 1);
+
+                // 補正係数 k = 1 - (w * 0.35 * amountFactor)
+                const amountFactor = (Math.max(0, Math.min(100, hueWeightAmount)) / 100);
+                const k = 1 - (src_w * 0.35 * amountFactor);
+                
+                // 色距離 = baseDist * k
+                score = baseDist(r, g, b, p) * k;
             }
             if (score < bestScore) {
                 bestScore = score;
@@ -78,6 +93,9 @@ window.pomiX1 = {
     },
     drawOutput: async (canvas, dataUrl, outputMode, cropPosition, ditherMode, hueWeight, hueWeightAmount, brightness, contrast, saturation) => {
         try {
+            if (window.pomiLog && hueWeight && hueWeightAmount > 0) { // hueWeightAmountが0より大きい場合のみログ出力
+                window.pomiLog.log(`[x1] hueBias=on (amount=${hueWeightAmount})`);
+            }
             if (!window.pomiImage || !window.pomiImage.buildResizeRequest || !window.pomiImage.drawToCanvasRequest) {
                 console.error('[pomiX1] pomiImage module is missing.');
                 alert('必要なモジュールの読み込みに失敗しました。ページを再読み込みしてください。');
