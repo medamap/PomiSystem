@@ -466,3 +466,13 @@ window.pomiMsx = {
         return `${srcW}×${srcH} → ${targetW}×${targetH} (${label})${cropText}`;
     }
 };
+
+window.pomiUtils = {
+    setFullWidthMode: (isFullWidth) => {
+        if (isFullWidth) {
+            document.body.classList.add('full-width-mode');
+        } else {
+            document.body.classList.remove('full-width-mode');
+        }
+    }
+};

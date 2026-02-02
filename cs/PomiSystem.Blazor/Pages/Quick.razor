@@ -10,6 +10,12 @@
         <h1>クイック変換</h1>
         <p>プロジェクトを作らず、即座に変換したい人のための入口。</p>
         <BuildInfo />
+        <div class="quick-top-options">
+            <label class="quick-option quick-toggle">
+                <input type="checkbox" @bind="IsFullWidth" @bind:after="OnFullWidthToggled" />
+                <span>全幅モード</span>
+            </label>
+        </div>
     </header>
 
     <section class="quick-panel">
@@ -551,6 +557,7 @@
     private bool MsxOutputPixelated;
     private bool X1InputPixelated;
     private bool X1OutputPixelated;
+    private bool IsFullWidth;
 
     private bool CanConvert => SelectedTarget == "msx" && _hasPreview;
     private bool IsDitherStrengthLocked => IsUiLocked || !(MsxDitherMode?.StartsWith("stripe") ?? false);
@@ -567,6 +574,10 @@
     {
         SelectedTarget = await LocalStorageGetAsync(StorageKey);
         await LoadMsxSettings();
+        // FullWidth設定の復元
+        var fullWidthStr = await LocalStorageGetAsync("quickFullWidth");
+        IsFullWidth = bool.TryParse(fullWidthStr, out var result) && result;
+        await ApplyFullWidthClass(IsFullWidth);
     }
 
     private async Task SelectTarget(string code)
@@ -1067,6 +1078,17 @@
     private async Task ApplyX1OutputZoom()
     {
         await JS.InvokeVoidAsync("pomiMsx.updateOutputZoom", X1OutputCanvas, X1OutputCanvasWrapperRef, X1OutputZoom, X1OutputPixelated);
+    }
+
+    private async Task OnFullWidthToggled()
+    {
+        await LocalStorageSetAsync("quickFullWidth", IsFullWidth.ToString());
+        await ApplyFullWidthClass(IsFullWidth);
+    }
+
+    private async Task ApplyFullWidthClass(bool isFullWidth)
+    {
+        await JS.InvokeVoidAsync("window.pomiUtils.setFullWidthMode", isFullWidth);
     }
 
     private bool SettingsChangedSinceApply()

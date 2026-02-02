@@ -895,3 +895,17 @@ body.env-develop .env-label.env-develop {
     content: var(--blazor-load-percentage-text, "Loading");
 }
 
+body.full-width-mode .app-shell {
+    padding: 48px 12px 80px; /* 左右のパディングを狭める */
+}
+
+body.full-width-mode .app-main {
+    max-width: 1600px; /* 最大幅を広げる */
+}
+
+@media (max-width: 720px) {
+    body.full-width-mode .app-shell {
+        padding: 32px 8px 60px; /* モバイル時のパディング調整 */
+    }
+}
+
